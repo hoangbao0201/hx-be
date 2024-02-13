@@ -1,0 +1,108 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  roleId   Int    @id @default(autoincrement())
+  roleName String @unique
+  users    User[]
+}
+
+model User {
+  userId      Int      @id @default(autoincrement())
+  name        String
+  username    String   @unique
+  email       String   @unique
+  password    String?
+  description String?
+  rank        Int      @default(0)
+  avatarUrl   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  roleId Int
+  role   Role @relation(fields: [roleId], references: [roleId])
+
+  books     Book[]
+  userViews UserView[]
+}
+
+model Book {
+  bookId      Int     @id @default(autoincrement())
+  slug        String
+  title       String
+  anotherName String?
+  description String?
+  status      Int     @default(1)
+  thumbnail   String?
+  scrapedUrl  String  @unique
+
+  postedById Int
+  postedBy   User    @relation(fields: [postedById], references: [userId], onDelete: Cascade)
+  authorId   Int?
+  author     Author? @relation(fields: [authorId], references: [authorId], onDelete: Cascade)
+
+  tags      BookTag[]
+  chapters  Chapter[]
+  userViews UserView[]
+
+  @@index([bookId])
+}
+
+// Book Tag
+model BookTag {
+  bookId Int
+  tagId  Int
+
+  book Book @relation(fields: [bookId], references: [bookId], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [tagId], onDelete: Cascade)
+
+  @@id([bookId, tagId])
+}
+
+model Tag {
+  tagId    Int       @id @default(autoincrement())
+  // index     String    @unique
+  bookTags BookTag[]
+}
+
+// Author
+model Author {
+  authorId Int    @id @default(autoincrement())
+  name     String @unique
+  books    Book[]
+}
+
+model UserView {
+  userViewId Int      @id @default(autoincrement())
+  userId     Int?
+  bookId     Int
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [userId])
+  book Book  @relation(fields: [bookId], references: [bookId], onDelete: Cascade)
+}
+
+// Chapter
+model Chapter {
+  chapterNumber Int
+  title         String?
+
+  content String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bookId Int
+  book   Book @relation(fields: [bookId], references: [bookId], onDelete: Cascade)
+
+  @@id([chapterNumber, bookId])
+}
