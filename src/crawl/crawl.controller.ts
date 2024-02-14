@@ -10,7 +10,7 @@ export class CrawlController {
   @UseGuards(JwtGuard)
   @Post('/book')
   createBook(@Request() req, @Query('type') type: "lxhentai" | "hentaivn", @Body() crawlNovelDTO: CrawlBookDTO) {
-    return this.crawlService.createNovel(req.user.userId, {
+    return this.crawlService.createBook(req.user.userId, {
       type: type,
       take: crawlNovelDTO?.take ? crawlNovelDTO?.take : 1,
       bookUrl: crawlNovelDTO?.bookUrl,

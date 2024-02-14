@@ -1,7 +1,5 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { BookService } from './book.service';
-import { CreateBookDto } from './dto/create-book.dto';
-import { UpdateBookDto } from './dto/update-book.dto';
 
 @Controller('/api/books')
 export class BookController {
@@ -18,5 +16,12 @@ export class BookController {
     @Query('sort') sort: 'desc' | 'asc',
   ) {
     return this.bookService.findAll({ q, byu, tags, take: take, skip: skip, sort, otherId });
+  }
+
+  @Get("/:bookId")
+  findOne(
+    @Param("bookId") bookId: number
+  ){
+    return this.bookService.findOne(bookId);
   }
 }

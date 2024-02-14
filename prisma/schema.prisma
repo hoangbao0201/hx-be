@@ -36,14 +36,16 @@ model User {
 }
 
 model Book {
-  bookId      Int     @id @default(autoincrement())
+  bookId      Int      @id @default(autoincrement())
   slug        String
   title       String
   anotherName String?
   description String?
-  status      Int     @default(1)
+  status      Int      @default(1)
   thumbnail   String?
-  scrapedUrl  String  @unique
+  scrapedUrl  String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   postedById Int
   postedBy   User    @relation(fields: [postedById], references: [userId], onDelete: Cascade)

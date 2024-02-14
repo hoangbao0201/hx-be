@@ -37,15 +37,17 @@ export class BookService {
           slug: true,
           thumbnail: true,
           chapters: {
-            take: 3, // Lấy ra 3 chương gần đây nhất cho mỗi cuốn sách
-            orderBy: { createdAt: 'desc' },
+            take: 2,
+            orderBy: {
+              chapterNumber: "desc"
+            },
             select: {
               chapterNumber: true,
               createdAt: true
             }
           },
         },
-      })
+      });
 
       return {
         success: true,
@@ -59,8 +61,66 @@ export class BookService {
     };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} book`;
+  async findOne(bookId: number) {
+    try {
+      const bookRes = await this.prismaService.book.findUnique({
+        where: {
+          bookId: +bookId
+        },
+        select: {
+          bookId: true,
+          title: true,
+          slug: true,
+          anotherName: true,
+          description: true,
+          status: true,
+          thumbnail: true,
+          tags: true,
+          author: {
+            select: {
+              name: true,
+              authorId: true
+            },
+          },
+          postedBy: {
+            select: {
+              avatarUrl: true,
+              role: true,
+              name: true,
+              username: true,
+            }
+          },
+          chapters: {
+            orderBy: {
+              chapterNumber: 'desc'
+            },
+            select: {
+              title: true,
+              chapterNumber: true,
+              createdAt: true,
+              updatedAt: true,
+            }
+          },
+          createdAt: true,
+          updatedAt: true,
+          _count: {
+            select: {
+              chapters: true
+            }
+          }
+        }
+      }) 
+
+      return {
+        success: true,
+        book: bookRes
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error
+      }
+    }
   }
 
   update(id: number, updateBookDto: UpdateBookDto) {
