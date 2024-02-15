@@ -5,6 +5,7 @@ import { Injectable } from '@nestjs/common';
 import { textToSlug } from '../utils/textToSlug';
 import { CrawlBookDTO } from './dto/crawl-novel.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { listTagToId } from '../constants/data';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 @Injectable()
@@ -18,15 +19,27 @@ export class CrawlService {
   async createBook(userId: number, { type = "lxhentai", take, bookUrl }: CrawlBookDTO & { type: "lxhentai" | "hentaivn" }) {
 
     try {
-      // Crawl Data Novel
-      const dataBook = await this.crawlBook(type, bookUrl);
-      if(!dataBook?.success) {
-        throw new Error("Error crawling book");
-      }
-      
-      // Create Book
-      const { title, anotherName, author, description, status, tags, thumbnail } = dataBook?.book;
+      let nextChapter = null;
       try {
+        if(nextChapter) {
+          const error : any = new Error("Error crawling book");
+          error.code = "P2002";
+          throw error;
+        }
+
+        // Crawl Data Novel
+        const dataBook = await this.crawlBook(type, bookUrl);
+        if(!dataBook?.success) {
+          throw new Error("Error crawling book");
+        }
+        // return {
+        //   success: true,
+        //   dataBook: dataBook
+        // }
+
+        // Create Book
+        const { title, anotherName, author, description, status, tags, thumbnail, next } = dataBook?.book;
+        nextChapter = next;
         const bookRes = await this.prismaService.book.create({
           data: {
             title: title,
@@ -85,14 +98,6 @@ export class CrawlService {
           }
         });
 
-        // Create Multiple Chapter
-        const chapterRes =  await this.createMultipleChaptersBook({
-          bookId: bookRes?.bookId,
-          bookUrl: bookUrl,
-          start: 0,
-          take: +take,
-        });
-
         return {
           success: true,
           type: type,
@@ -110,6 +115,15 @@ export class CrawlService {
             },
             select: {
               bookId: true,
+              chapters: {
+                take: 1,
+                orderBy: {
+                  chapterNumber: "desc"
+                },
+                select: {
+                  chapterNumber: true
+                }
+              },
               _count: {
                 select: {
                   chapters: true
@@ -117,11 +131,20 @@ export class CrawlService {
               }
             }
           });
+          if(!bookRes) {
+            throw new Error("Error crawling book");
+          }
+
+          // return {
+          //   success: "thành công",
+          //   nextChapter: nextChapter,
+          //   bookRes: bookRes
+          // }
 
           // Create Multiple Chapter
           const chapterRes =  await this.createMultipleChaptersBook({
             bookId: bookRes?.bookId,
-            bookUrl: bookUrl,
+            chapterUrl: nextChapter,
             start: bookRes?._count.chapters,
             take: +take,
           });
@@ -148,12 +171,12 @@ export class CrawlService {
   // Create Multiple Chapters Book
   async createMultipleChaptersBook({
     bookId,
-    bookUrl,
+    chapterUrl,
     start,
     take,
   }: {
     bookId: number;
-    bookUrl: string;
+    chapterUrl: string;
     start: number;
     take: number;
   }) {
@@ -163,16 +186,14 @@ export class CrawlService {
     let check = []
     try {
       while (i <= n) {
-        const dataChapter = await this.crawlChapter(
-          bookUrl + '/chap-' + i,
-        );
+        const dataChapter = await this.crawlChapter(chapterUrl);
 
         // return dataChapter;
 
         if (!dataChapter?.success) {
           throw new Error(`Error crawling chapter ${i}: ${dataChapter?.error}`);
         }
-    
+        
         const imagesChapter =
           await this.cloudinaryService.uploadImagesChapterByUrl({
             listUrl: dataChapter?.chapter.content,
@@ -185,7 +206,7 @@ export class CrawlService {
           content: JSON.stringify(imagesChapter?.images),
         });
 
-        if (listChapter?.length >= 10 || n === i) {
+        if (listChapter?.length >= 3 || n === i) {
           // Create Chapter Book
           const chapterRes = await this.prismaService.chapter.createMany({
             data: listChapter?.map((chapter) => chapter),
@@ -193,16 +214,19 @@ export class CrawlService {
           if (!chapterRes) {
             throw new Error(`Error creating chapters`);
           }
+          console.log("Get chapter " + i + " successfully");
           listChapter = [];
         }
 
         // If the next chapter doesn't exist
-        if (!dataChapter?.isNext) {
+        if (!dataChapter?.next) {
           if(listChapter?.length > 0) {
             throw new Error(`Error crawling chapter ${i}: ${dataChapter?.error}`);
           }
           break;
         }
+
+        chapterUrl = dataChapter?.next
         i++;
       }
 
@@ -257,7 +281,8 @@ export class CrawlService {
       let anotherName = ""
       let status = 1
       let author = ""
-      let tags = []
+      let tags = [];
+      let next = null;
       let chapterNextUrl = null;
 
       // HENTAIVN FAKE
@@ -281,14 +306,21 @@ export class CrawlService {
       // const chapterNextUrl = $('.watch-online a').attr('href');
 
       if(type === "lxhentai") {
+        // Tilte
         title = $('title').text().split("- LXHENTAI")[0].trim();
-        
+        // Thumbnail
         const urlMatch = /url\('([^']+)'\)/.exec($('.rounded-lg.cover').attr('style'));
         thumbnail = urlMatch ? urlMatch[1] : null;
-
+        // Tags
         $('.bg-gray-500.hover\\:bg-gray-600.text-white.rounded.px-2.text-sm.inline-block').each((index, element) => {
-          tags.push($(element).text());
+          const tag = $(element).text().trim();
+          if(listTagToId[tag]) {
+            tags.push(listTagToId[tag]);
+          }
         });
+        // Next Chapter
+        // const path = new URL(url).pathname;
+        next = $(".overflow-y-auto.overflow-x-hidden>a").last().attr("href");
       }
 
       return {
@@ -302,6 +334,7 @@ export class CrawlService {
           status: status,
           author: author,
           tags: tags,
+          next: next.length > 0 ? new URL(url).origin + next : null
         },
       };
     } catch (error) {
@@ -325,11 +358,12 @@ export class CrawlService {
       const content = $('.lazy.max-w-full.my-0.mx-auto')
         .map((index, element) => $(element).attr('src'))
         .get();
-      const isNext = !$('a#btn-next button').hasClass('cursor-not-allowed');
+      let nextChapter = $('a#btn-next').attr("href");
+      const next = nextChapter === "javascript:nm5213(0)" ? null : new URL(url).origin + nextChapter;
 
       return {
         success: true,
-        isNext: isNext,
+        next: next,
         chapter: {
           title: title,
           content: content,

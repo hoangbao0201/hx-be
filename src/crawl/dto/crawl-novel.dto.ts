@@ -6,6 +6,9 @@ export class CrawlBookDTO {
     @IsNotEmpty()
     bookUrl: string
 
+    // @IsOptional()
+    // nextChapter?: string
+
     @IsString()
     @IsOptional()
     take?: number

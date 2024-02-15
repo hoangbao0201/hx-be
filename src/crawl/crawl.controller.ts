@@ -12,6 +12,7 @@ export class CrawlController {
   createBook(@Request() req, @Query('type') type: "lxhentai" | "hentaivn", @Body() crawlNovelDTO: CrawlBookDTO) {
     return this.crawlService.createBook(req.user.userId, {
       type: type,
+      // nextChapter: crawlNovelDTO?.nextChapter ? crawlNovelDTO?.nextChapter : null,
       take: crawlNovelDTO?.take ? crawlNovelDTO?.take : 1,
       bookUrl: crawlNovelDTO?.bookUrl,
     });

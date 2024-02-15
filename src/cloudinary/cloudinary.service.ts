@@ -79,8 +79,8 @@ export class CloudinaryService {
 
     // const { width = 2000, height = 2000 } = data;
     try {
-        for (let i = 0; i < listUrl.length; i += 8) {
-            const chunkUrls = listUrl.slice(i, i + 8);
+        for (let i = 0; i < listUrl.length; i += 10) {
+            const chunkUrls = listUrl.slice(i, i + 10);
             const uploadPromises = chunkUrls.map(async (url) => {
                 const { data: imageBuffer } = await axios.get(`${url}`, {
                     responseType: 'arraybuffer',

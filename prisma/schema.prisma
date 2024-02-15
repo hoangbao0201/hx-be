@@ -62,7 +62,7 @@ model Book {
 // Book Tag
 model BookTag {
   bookId Int
-  tagId  Int
+  tagId  String
 
   book Book @relation(fields: [bookId], references: [bookId], onDelete: Cascade)
   tag  Tag  @relation(fields: [tagId], references: [tagId], onDelete: Cascade)
@@ -71,9 +71,10 @@ model BookTag {
 }
 
 model Tag {
-  tagId    Int       @id @default(autoincrement())
-  // index     String    @unique
+  tagId    String
   bookTags BookTag[]
+
+  @@id([tagId])
 }
 
 // Author
