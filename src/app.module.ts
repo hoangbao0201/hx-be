@@ -10,6 +10,7 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { ImagesModule } from './images/images.module';
 import { ChapterModule } from './chapter/chapter.module';
 import { BookModule } from './book/book.module';
+import { CommentModule } from './comment/comment.module';
 
 @Module({
   imports: [
@@ -23,7 +24,8 @@ import { BookModule } from './book/book.module';
     CloudinaryModule,
     ImagesModule,
     ChapterModule,
-    BookModule
+    BookModule,
+    CommentModule
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -101,9 +101,10 @@ export class CrawlService {
         return {
           success: true,
           type: type,
-          bookUrl: bookUrl,
-          book: dataBook,
-          dataThumbnail: dataThumbnail
+          book: {
+            ...dataBook?.book,
+            thumbnail: dataThumbnail?.image
+          },
         };
       }
       catch (error) {
@@ -152,7 +153,7 @@ export class CrawlService {
           return {
             success: true,
             message: 'Book exist',
-            chapterRes: chapterRes,
+            chapters: chapterRes,
           };
         }
         return {
@@ -183,7 +184,6 @@ export class CrawlService {
     const n = start + take;
     let i = start + 1;
     let listChapter = [];
-    let check = []
     try {
       while (i <= n) {
         const dataChapter = await this.crawlChapter(chapterUrl);
@@ -232,7 +232,6 @@ export class CrawlService {
 
       return {
         success: true,
-        check: check,
         message: "Create chapters successfully"
       };
     } catch (error) {
@@ -247,8 +246,7 @@ export class CrawlService {
           }
           return {
             success: true,
-            check: check,
-            message: "Create chapters successfully"
+            message: "Create chapters successfully",
           }
         } catch (remainingChaptersError) {
           return {

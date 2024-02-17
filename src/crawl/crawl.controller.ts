@@ -9,12 +9,16 @@ export class CrawlController {
 
   @UseGuards(JwtGuard)
   @Post('/book')
-  createBook(@Request() req, @Query('type') type: "lxhentai" | "hentaivn", @Body() crawlNovelDTO: CrawlBookDTO) {
+  createBook(
+    @Request() req,
+    @Query('type') type: "lxhentai" | "hentaivn",
+    @Body('take') take: number,
+    @Body('bookUrl') bookUrl: string,
+  ) {
     return this.crawlService.createBook(req.user.userId, {
       type: type,
-      // nextChapter: crawlNovelDTO?.nextChapter ? crawlNovelDTO?.nextChapter : null,
-      take: crawlNovelDTO?.take ? crawlNovelDTO?.take : 1,
-      bookUrl: crawlNovelDTO?.bookUrl,
+      take: +take || 1,
+      bookUrl: bookUrl,
     });
   }
 }
