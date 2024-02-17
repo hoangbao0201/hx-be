@@ -2,35 +2,71 @@ import { Get, Injectable } from '@nestjs/common';
 import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class BookService {
   constructor(private prismaService: PrismaService) {}
 
-
   async findAll(options: {
     q?: string;
     byu?: string;
-    tags?: string;
+    genres?: string;
+    notgenres?: string;
     take?: number;
     skip?: number;
     sort?: 'desc' | 'asc';
-    otherId?: number
+    otherId?: number;
   }) {
     const {
       q = '',
       byu = '',
-      tags = '',
+      genres,
+      notgenres,
       take = 24,
       skip = 0,
       sort = 'desc',
-      otherId
-  } = options;
+      otherId,
+    } = options;
 
     try {
+      const haveTags = genres ? genres?.split(",") : null;
+      const notTags = notgenres ? notgenres?.split(",") : null;
+
+      let where: Prisma.BookWhereInput = {}
+      if (haveTags) {
+        where = {
+          ...where,
+          AND: haveTags.map((tagT) => ({
+            tags: {
+              some: {
+                tagId: {
+                  equals: tagT
+                }
+              }
+            }
+          }))
+        }
+      }
+      if (notTags) {
+        where = {
+          ...where,
+          tags: {
+            none: {
+              tagId: {
+                in: notTags
+              }
+            }
+          }
+        }
+      }
       const books = await this.prismaService.book.findMany({
         skip: +skip,
         take: +take,
+        orderBy: {
+          updatedAt: sort
+        },
+        where: where,
         select: {
           bookId: true,
           title: true,
@@ -39,33 +75,47 @@ export class BookService {
           chapters: {
             take: 2,
             orderBy: {
-              chapterNumber: "desc"
+              chapterNumber: 'desc',
             },
             select: {
               chapterNumber: true,
-              createdAt: true
-            }
+              createdAt: true,
+            },
           },
+
+          tags: {
+            select: {
+              tag: {
+                select: {
+                  tagId: true,
+                }
+              }
+            }
+          }
+
         },
       });
 
       return {
+        haveTags,
+        notTags,
+        where,
         success: true,
-        books: books
-      }
+        books: books,
+      };
     } catch (error) {
       return {
         success: false,
-        error: error
-      }
-    };
+        error: error,
+      };
+    }
   }
 
   async findOne(bookId: number) {
     try {
       const bookRes = await this.prismaService.book.findUnique({
         where: {
-          bookId: +bookId
+          bookId: +bookId,
         },
         select: {
           bookId: true,
@@ -79,7 +129,7 @@ export class BookService {
           author: {
             select: {
               name: true,
-              authorId: true
+              authorId: true,
             },
           },
           postedBy: {
@@ -88,38 +138,38 @@ export class BookService {
               role: true,
               name: true,
               username: true,
-            }
+            },
           },
           chapters: {
             orderBy: {
-              chapterNumber: 'desc'
+              chapterNumber: 'desc',
             },
             select: {
               title: true,
               chapterNumber: true,
               createdAt: true,
               updatedAt: true,
-            }
+            },
           },
           createdAt: true,
           updatedAt: true,
           _count: {
             select: {
-              chapters: true
-            }
-          }
-        }
-      }) 
+              chapters: true,
+            },
+          },
+        },
+      });
 
       return {
         success: true,
-        book: bookRes
-      }
+        book: bookRes,
+      };
     } catch (error) {
       return {
         success: false,
-        error: error
-      }
+        error: error,
+      };
     }
   }
 

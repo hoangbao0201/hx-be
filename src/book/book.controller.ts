@@ -7,15 +7,16 @@ export class BookController {
 
   @Get()
   findAll(
-    @Query('q') q: string,
-    @Query('byu') byu: string,
-    @Query('tags') tags: string,
-    @Query('take') take: number,
-    @Query('skip') skip: number,
-    @Query('otherId') otherId: number,
-    @Query('sort') sort: 'desc' | 'asc',
+    @Query('q') q?: string,
+    @Query('byu') byu?: string,
+    @Query('genres') genres?: string,
+    @Query('notgenres') notgenres?: string,
+    @Query('take') take?: number,
+    @Query('skip') skip?: number,
+    @Query('otherId') otherId?: number,
+    @Query('sort') sort?: 'desc' | 'asc',
   ) {
-    return this.bookService.findAll({ q, byu, tags, take: take, skip: skip, sort, otherId });
+    return this.bookService.findAll({ q, byu, genres, notgenres, take: take, skip: skip, sort, otherId });
   }
 
   @Get("/:bookId")
