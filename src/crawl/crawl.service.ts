@@ -150,6 +150,12 @@ export class CrawlService {
             take: +take,
           });
 
+          // Update the corresponding book's updatedAt field
+          await this.prismaService.book.update({
+            where: { bookId: bookRes?.bookId },
+            data: { updatedAt: new Date() },
+          });
+
           return {
             success: true,
             message: 'Book exist',

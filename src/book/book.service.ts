@@ -72,6 +72,7 @@ export class BookService {
           title: true,
           slug: true,
           thumbnail: true,
+          scrapedUrl: true,
           chapters: {
             take: 2,
             orderBy: {
@@ -82,25 +83,16 @@ export class BookService {
               createdAt: true,
             },
           },
-
-          tags: {
-            select: {
-              tag: {
-                select: {
-                  tagId: true,
-                }
-              }
-            }
-          }
-
         },
       });
 
+      const countBook = await this.prismaService.book.count({
+        where: where,
+      });
+
       return {
-        haveTags,
-        notTags,
-        where,
         success: true,
+        countBook: countBook,
         books: books,
       };
     } catch (error) {
