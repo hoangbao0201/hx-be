@@ -19,30 +19,19 @@ export class CrawlService {
   async createBook(userId: number, { type = "lxhentai", take, bookUrl }: CrawlBookDTO & { type: "lxhentai" | "hentaivn" }) {
 
     try {
-      let nextChapter = null;
       try {
-        if(nextChapter) {
-          const error : any = new Error("Error crawling book");
-          error.code = "P2002";
-          throw error;
-        }
-
         // Crawl Data Novel
         const dataBook = await this.crawlBook(type, bookUrl);
         if(!dataBook?.success) {
           throw new Error("Error crawling book");
         }
-        // return {
-        //   success: true,
-        //   dataBook: dataBook
-        // }
 
         // Create Book
         const { title, anotherName, author, description, status, tags, thumbnail, next } = dataBook?.book;
-        nextChapter = next;
         const bookRes = await this.prismaService.book.create({
           data: {
             title: title,
+            next: dataBook?.book.next,
             slug: textToSlug(title),
             anotherName: anotherName,
             description: description,
@@ -58,7 +47,7 @@ export class CrawlService {
         // Upload Thumbnail Novel
         const dataThumbnail = await this.cloudinaryService.uploadImageBookByUrl({
           url: thumbnail,
-          type: 'thumbnail',
+          folder: `/${bookRes?.bookId}`,
           width: 1000,
           height: 1000,
         });
@@ -108,65 +97,104 @@ export class CrawlService {
         };
       }
       catch (error) {
-        if (error.code === 'P2002') {
-          // Get Book
-          const bookRes = await this.prismaService.book.findUnique({
-            where: {
-              scrapedUrl: bookUrl
-            },
-            select: {
-              bookId: true,
-              chapters: {
-                take: 1,
-                orderBy: {
-                  chapterNumber: "desc"
-                },
-                select: {
-                  chapterNumber: true
-                }
-              },
-              _count: {
-                select: {
-                  chapters: true
-                }
-              }
-            }
-          });
-          if(!bookRes) {
-            throw new Error("Error crawling book");
-          }
-
-          // return {
-          //   success: "thành công",
-          //   nextChapter: nextChapter,
-          //   bookRes: bookRes
-          // }
-
-          // Create Multiple Chapter
-          const chapterRes =  await this.createMultipleChaptersBook({
-            bookId: bookRes?.bookId,
-            chapterUrl: nextChapter,
-            start: bookRes?._count.chapters,
-            take: +take,
-          });
-
-          // Update the corresponding book's updatedAt field
-          await this.prismaService.book.update({
-            where: { bookId: bookRes?.bookId },
-            data: { updatedAt: new Date() },
-          });
-
-          return {
-            success: true,
-            message: 'Book exist',
-            chapters: chapterRes,
-          };
-        }
         return {
             success: false,
             message: 'Error create book',
         };
       }
+    } catch (error) {
+      return {
+        success: false,
+        error: error,
+      };
+    }
+  }
+
+  // Create Novel
+  async createChapters(userId: number, { type = "lxhentai", take, bookUrl }: CrawlBookDTO & { type: "lxhentai" | "hentaivn" }) {
+    try {
+      // Get Book
+      const bookRes = await this.prismaService.book.findUnique({
+        where: {
+          scrapedUrl: bookUrl
+        },
+        select: {
+          bookId: true,
+          next: true,
+          chapters: {
+            take: 1,
+            orderBy: {
+              chapterNumber: "desc"
+            },
+            select: {
+              next: true,
+              chapterNumber: true
+            }
+          },
+          _count: {
+            select: {
+              chapters: true
+            }
+          }
+        }
+      });
+      if(!bookRes) {
+        throw new Error("Error crawling chapters");
+      }
+
+      // return {
+      //   success: true,
+      //   message: 'Create chapters successfully',
+      //   chapters: bookRes,
+      // };
+
+      let chapterRes = null;
+      if(bookRes?._count.chapters > 0) {
+        // Create Multiple Chapter
+        chapterRes =  await this.createMultipleChaptersBook({
+          bookId: bookRes?.bookId,
+          chapterUrl: bookRes?.chapters[0].next,
+          start: bookRes?._count.chapters,
+          take: +take,
+        });
+
+        if(!chapterRes?.success) {
+          // throw new Error(JSON.stringify(chapterRes?.error));
+          return {
+            success: false,
+            error: chapterRes?.error,
+          };
+        }
+      }
+      else {
+        // Create Multiple Chapter
+        chapterRes =  await this.createMultipleChaptersBook({
+          bookId: bookRes?.bookId,
+          chapterUrl: bookRes?.next,
+          start: bookRes?._count.chapters,
+          take: +take,
+        });
+
+        if(!chapterRes?.success) {
+          // throw new Error(JSON.stringify(chapterRes?.error));
+          return {
+            success: false,
+            error: chapterRes?.error,
+          };
+        }
+      }
+
+      // Update the corresponding book's updatedAt field
+      this.prismaService.book.update({
+        where: { bookId: bookRes?.bookId },
+        data: { updatedAt: new Date() },
+      });
+
+      return {
+        success: true,
+        message: 'Create chapters successfully',
+        chapters: chapterRes,
+      };
     } catch (error) {
       return {
         success: false,
@@ -190,29 +218,36 @@ export class CrawlService {
     const n = start + take;
     let i = start + 1;
     let listChapter = [];
+    let urlQuery = chapterUrl;
     try {
       while (i <= n) {
-        const dataChapter = await this.crawlChapter(chapterUrl);
-
-        // return dataChapter;
-
+        const dataChapter = await this.crawlChapter(urlQuery);
+        
         if (!dataChapter?.success) {
           throw new Error(`Error crawling chapter ${i}: ${dataChapter?.error}`);
         }
+
+        // return {
+        //   success: true,
+        //   chapterUrl,
+        //   dataChapter
+        // };
         
         const imagesChapter =
           await this.cloudinaryService.uploadImagesChapterByUrl({
+            folder: `/${bookId}/chapters/${i}`,
             listUrl: dataChapter?.chapter.content,
           });
 
         listChapter.push({
           bookId: bookId,
           chapterNumber: i,
+          next: dataChapter?.next,
           title: dataChapter?.chapter.title,
           content: JSON.stringify(imagesChapter?.images),
         });
 
-        if (listChapter?.length >= 3 || n === i) {
+        if (listChapter?.length >= 2 || n === i) {
           // Create Chapter Book
           const chapterRes = await this.prismaService.chapter.createMany({
             data: listChapter?.map((chapter) => chapter),
@@ -232,7 +267,7 @@ export class CrawlService {
           break;
         }
 
-        chapterUrl = dataChapter?.next
+        urlQuery = dataChapter?.next
         i++;
       }
 

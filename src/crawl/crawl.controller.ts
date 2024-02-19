@@ -21,4 +21,18 @@ export class CrawlController {
       bookUrl: bookUrl,
     });
   }
+  @UseGuards(JwtGuard)
+  @Post('/chapter')
+  createChapters(
+    @Request() req,
+    @Query('type') type: "lxhentai" | "hentaivn",
+    @Body('take') take: number,
+    @Body('bookUrl') bookUrl: string,
+  ) {
+    return this.crawlService.createChapters(req.user.userId, {
+      type: type,
+      take: +take || 1,
+      bookUrl: bookUrl,
+    });
+  }
 }

@@ -33,7 +33,6 @@ export class RegisterDTO {
 } 
 
 export class LoginDTO {
-    @IsEmail()
     @IsNotEmpty()
     @Length(5, 30, {
         // message: "Email từ 5 đến 30 kí tự"

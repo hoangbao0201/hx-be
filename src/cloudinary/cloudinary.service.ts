@@ -26,11 +26,11 @@ export class CloudinaryService {
 
   async uploadImageBookByUrl(data: {
     url: string;
-    type?: 'images' | 'thumbnail' | 'chapter';
+    folder: string;
     width?: number;
     height?: number;
   }) {
-    const { url, type = 'images', height = 1000, width = 1000 } = data;
+    const { url, folder = '', height = 1000, width = 1000 } = data;
     try {
       const { data: imageBuffer } = await axios.get(url, {
         responseType: 'arraybuffer',
@@ -39,7 +39,7 @@ export class CloudinaryService {
       const result = await new Promise<string>((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
-            folder: `HX/book/${type}`,
+            folder: `HX/books${folder}`,
             transformation: [
               {
                 width: +width,
@@ -73,14 +73,14 @@ export class CloudinaryService {
     }
   }
 
-  async uploadImagesChapterByUrl(data: { listUrl: string[]; width?: number; height?: number; }) {
-    const { listUrl = [] } = data;
+  async uploadImagesChapterByUrl(data: { folder: string, listUrl: string[]; width?: number; height?: number; }) {
+    const { folder = "", listUrl = [] } = data;
     let results = [];
 
     // const { width = 2000, height = 2000 } = data;
     try {
-        for (let i = 0; i < listUrl.length; i += 10) {
-            const chunkUrls = listUrl.slice(i, i + 10);
+        for (let i = 0; i < listUrl.length; i += 15) {
+            const chunkUrls = listUrl.slice(i, i + 15);
             const uploadPromises = chunkUrls.map(async (url) => {
                 const { data: imageBuffer } = await axios.get(`${url}`, {
                     responseType: 'arraybuffer',
@@ -96,7 +96,7 @@ export class CloudinaryService {
                 return new Promise<string>((resolve, reject) => {
                     const uploadStream = cloudinary.uploader.upload_stream(
                         {
-                            folder: `HX/book/chapter`,
+                            folder: `HX/books${folder}`,
                             transformation: [
                                 // {
                                 //     width: +width,

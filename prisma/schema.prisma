@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -47,6 +47,7 @@ model Book {
   status      Int      @default(1)
   thumbnail   String?
   scrapedUrl  String   @unique
+  next        String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -101,8 +102,8 @@ model UserView {
 model Chapter {
   chapterNumber Int
   title         String?
-
-  content String
+  next          String?
+  content       String  @db.Text
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -129,7 +130,7 @@ model Comment {
 
   chapter Chapter? @relation(fields: [bookId, chapterNumber], references: [bookId, chapterNumber], onDelete: Cascade)
 
-  sender   User     @relation(name: "Sender", fields: [senderId], references: [userId])
+  sender   User     @relation(name: "Sender", fields: [senderId], references: [userId], onDelete: Cascade)
   receiver User?    @relation(name: "Receiver", fields: [receiverId], references: [userId])
   parent   Comment? @relation(name: "ParentComment", fields: [parentId], references: [commentId], onDelete: Cascade)
 

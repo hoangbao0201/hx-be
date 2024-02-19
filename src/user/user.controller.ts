@@ -1,7 +1,8 @@
 import {
-  Controller, Get, Param
+  Controller, Get, Param, Post, UseGuards
 } from '@nestjs/common';
 import { UserService } from './user.service';
+import { JwtGuard } from '../auth/guard/jwt.guard';
 
 @Controller('/api/users')
 export class UserController {
@@ -14,6 +15,12 @@ export class UserController {
   //   return user;
   // }
 
+  @Post('/upload/avatar')
+  uploadAvatar(@Param('username') username: string) {
+    return this.userService.userDetail(username); 
+  }
+
+  @UseGuards(JwtGuard)
   @Get(':username')
   findOne(@Param('username') username: string) {
     return this.userService.userDetail(username); 
