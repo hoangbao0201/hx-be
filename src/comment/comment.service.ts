@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class CommentService {
@@ -65,6 +66,37 @@ export class CommentService {
     // sort?: 'desc' | 'asc';
   }) {
     const { parentId, bookId, chapterNumber, take = 10, skip = 0 } = options;
+
+    let where: Prisma.CommentWhereInput = {};
+    let select: Prisma.CommentSelect = {};
+
+    if(parentId) {
+      where = {
+        ...where,
+        parentId: +parentId,
+      }
+    }
+    if(bookId) {
+      where = {
+        ...where,
+        bookId: +bookId,
+      }
+    }
+    if(chapterNumber) {
+      where = {
+        ...where,
+        chapterNumber: +chapterNumber,
+      }
+    }
+    if(!parentId && !bookId && !chapterNumber) {
+      select = {
+        chapter: {
+          select: {
+            chapterNumber: true,
+          }
+        },
+      }
+    }
     
     try {
       const comments = await this.prismaService.comment.findMany({
@@ -73,11 +105,7 @@ export class CommentService {
         orderBy: {
           createdAt: parentId ? 'asc' : 'desc',
         },
-        where: {
-          bookId: +bookId,
-          chapterNumber: chapterNumber ? +chapterNumber : null,
-          parentId: +parentId,
-        },
+        where: where,
         select: {
           bookId: true,
           chapterNumber: true,
@@ -86,6 +114,7 @@ export class CommentService {
           parentId: true,
           createdAt: true,
           updatedAt: true,
+          ...select,
           _count: {
             select: {
               replyComments: true,
@@ -106,7 +135,7 @@ export class CommentService {
 
       return {
         success: true,
-        comments: comments,
+        comments: comments
       };
     } catch (error) {
       return {
