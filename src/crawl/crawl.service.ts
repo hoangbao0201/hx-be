@@ -97,6 +97,17 @@ export class CrawlService {
         };
       }
       catch (error) {
+        if (error.code === 'P2002') {
+          const book = await this.prismaService.book.findFirst({
+            where: {
+              scrapedUrl: bookUrl,
+            }
+          })
+          return {
+              success: true,
+              book: book
+          };
+      }
         return {
             success: false,
             message: 'Error create book',
