@@ -71,7 +71,10 @@ export class AuthService {
             const user = await this.validateUser(authDTO);
             const payload = {
                 userId: user.userId,
-                username: user.username
+                username: user.username,
+                role: {
+                    name: user?.role.roleName
+                }
             };
 
             // return {
@@ -226,10 +229,13 @@ export class AuthService {
         throw new UnauthorizedException();
     }
 
-    async refreshToken(user: { userId: number, username: string }) {
+    async refreshToken(user: { userId: number, username: string, role: { name: string } }) {
         const payload = {
             userId: user.userId,
-            username: user.username
+            username: user.username,
+            role: {
+                name: user?.role.name
+            }
         };
 
         return {

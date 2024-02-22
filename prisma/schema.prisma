@@ -48,6 +48,7 @@ model Book {
   thumbnail   String?
   scrapedUrl  String   @unique
   next        String?
+  isGreatBook Boolean?  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

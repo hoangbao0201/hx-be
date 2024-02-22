@@ -73,6 +73,7 @@ export class BookService {
           slug: true,
           thumbnail: true,
           scrapedUrl: true,
+          isGreatBook: true,
           chapters: {
             take: 2,
             orderBy: {

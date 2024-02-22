@@ -11,6 +11,7 @@ import { ImagesModule } from './images/images.module';
 import { ChapterModule } from './chapter/chapter.module';
 import { BookModule } from './book/book.module';
 import { CommentModule } from './comment/comment.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -25,7 +26,8 @@ import { CommentModule } from './comment/comment.module';
     ImagesModule,
     ChapterModule,
     BookModule,
-    CommentModule
+    CommentModule,
+    AdminModule
   ],
   controllers: [AppController],
   providers: [AppService],
