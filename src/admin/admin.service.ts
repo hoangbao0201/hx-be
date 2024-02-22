@@ -26,8 +26,8 @@ export class AdminService {
 
     try {
       const books = await this.prismaService.book.findMany({
-        take: take,
-        skip: skip,
+        take: +take,
+        skip: +skip,
         orderBy: {
           updatedAt: sort,
         },
