@@ -88,15 +88,10 @@ export class CommentService {
         chapterNumber: +chapterNumber,
       }
     }
-    if(!parentId && !bookId && !chapterNumber) {
-      select = {
-        chapter: {
-          select: {
-            chapterNumber: true,
-          }
-        },
-      }
-    }
+    // if(!parentId && !bookId && !chapterNumber) {
+    //   select = {
+    //   }
+    // }
     
     try {
       const comments = await this.prismaService.comment.findMany({

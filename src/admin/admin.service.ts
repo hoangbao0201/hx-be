@@ -77,15 +77,16 @@ export class AdminService {
 
     try {
       const { bookId, title, isGreatBook } = book;
-      const bookRes = await this.prismaService.book.update({
-        where: {
-          bookId: bookId
-        },
-        data: {
-          // title: title,
-          isGreatBook: isGreatBook
-        }
-      });
+      const bookRes = await this.prismaService.$executeRaw`UPDATE "Book" SET "isGreatBook" = ${isGreatBook} WHERE "bookId" = ${bookId};`;
+      // const bookRes = await this.prismaService.book.update({
+      //   where: {
+      //     bookId: bookId
+      //   },
+      //   data: {
+      //     // title: title,
+      //     isGreatBook: isGreatBook
+      //   }
+      // });
 
       return {
         success: true,

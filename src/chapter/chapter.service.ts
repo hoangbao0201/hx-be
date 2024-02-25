@@ -59,4 +59,31 @@ export class ChapterService {
       };
     }
   }
+
+  async findAll(options: { bookId?: number, take?: number, skip?: number, sort?: "desc" | "asc" }) {
+    try {
+      const { bookId, take, skip, sort } = options;
+      const chapters = await this.prismaService.chapter.findMany({
+        where: {
+          bookId: +bookId,
+        },
+        select: {
+          bookId: true,
+          title: true,
+          chapterNumber: true,
+          createdAt: true,
+          updatedAt: true,
+        }
+      })
+      return {
+        success: true,
+        chapters: chapters,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error,
+      };
+    }
+  }
 }

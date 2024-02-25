@@ -60,6 +60,14 @@ export class BookService {
           }
         }
       }
+      if (q) {
+        where = {
+          ...where,
+          title: {
+            contains: q
+          }
+        }
+      }
       const books = await this.prismaService.book.findMany({
         skip: +skip,
         take: +take,
