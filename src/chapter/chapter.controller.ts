@@ -5,6 +5,11 @@ import { ChapterService } from './chapter.service';
 export class ChapterController {
   constructor(private readonly chapterService: ChapterService) {}
   
+  @Get('/seo')
+  findAllSeo() {
+    return this.chapterService.findAllSeo();
+  }
+
   @Get('/:chapterNumber/:bookId')
   findOne(
     @Param('chapterNumber') chapterNumber: number,

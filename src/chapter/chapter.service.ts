@@ -86,4 +86,33 @@ export class ChapterService {
       };
     }
   }
+
+  async findAllSeo() {
+    try {
+      const chapters = await this.prismaService.chapter.findMany({
+        select: {
+          bookId: true,
+          chapterNumber: true,
+          book: {
+            select: {
+              slug: true
+            }
+          },
+          createdAt: true,
+          updatedAt: true
+        }
+      });
+
+      return {
+        success: true,
+        chapters: chapters,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error,
+      };
+    }
+  }
+
 }

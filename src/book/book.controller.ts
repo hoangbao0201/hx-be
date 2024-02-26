@@ -19,6 +19,11 @@ export class BookController {
     return this.bookService.findAll({ q, byu, genres, notgenres, take: take, skip: skip, sort, otherId });
   }
 
+  @Get('/seo')
+  findAllSeo() {
+    return this.bookService.findAllSeo();
+  }
+
   @Get("/:bookId")
   findOne(
     @Param("bookId") bookId: number

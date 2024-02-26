@@ -174,11 +174,28 @@ export class BookService {
     }
   }
 
-  update(id: number, updateBookDto: UpdateBookDto) {
-    return `This action updates a #${id} book`;
+  async findAllSeo() {
+    try {
+      const books = await this.prismaService.book.findMany({
+        select: {
+          slug: true,
+          bookId: true,
+          createdAt: true,
+          updatedAt: true
+        }
+      });
+
+      return {
+        success: true,
+        books: books,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error,
+      };
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} book`;
-  }
+  
 }
