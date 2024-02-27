@@ -12,6 +12,7 @@ export class ImagesController {
   @Get()
   async findOne(
     @Query('slug') slug: string,
+    @Query('type') type: string,
     @Res() res: Response,
   ) {
     try {
@@ -21,7 +22,7 @@ export class ImagesController {
       const response = await axios.get(slug, {
         responseType: 'stream',
         headers: {
-          referer: new URL(slug).origin,
+          referer: type ? type : new URL(slug).origin,
           'Sec-Ch-Ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
           'Sec-Ch-Ua-Mobile': "?0",
           'Sec-Ch-Ua-Platform': "Windows",

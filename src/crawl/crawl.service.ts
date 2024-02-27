@@ -250,10 +250,13 @@ export class CrawlService {
             folder: `/${bookId}/chapters/${i}`,
             listUrl: dataChapter?.chapter.content,
           });
-        if(!imagesChapter?.success) {
-          this.cloudinaryService.deleteImageBlog({ imageId: `/${bookId}/chapters/${i}` });
+        
+        console.log(imagesChapter);
+        if(!imagesChapter?.success || imagesChapter?.images.length === 0) {
+          this.cloudinaryService.deleteFolder({ folderId: `/${bookId}/chapters/${i}` });
           return {
             success: false,
+            message: "Failed to create images",
             error: JSON.stringify(imagesChapter?.error)
           }
         }
@@ -414,7 +417,7 @@ export class CrawlService {
       }
       else if(type === "hentaivn") {
         title = '';
-        content = $('.xem_anhtruyen-0.nhom-0 img')
+        content = $('#image img')
           .map((index, element) => $(element).attr('data-src'))
           .get();
         const nextChapter = $('#nextLink.b-next').attr("href");

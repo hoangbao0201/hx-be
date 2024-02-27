@@ -134,14 +134,30 @@ export class CloudinaryService {
     }
   }
 
-  async deleteImageBlog({ imageId }: { imageId: string }) {
+  async deleteImage({ imageId }: { imageId: string }) {
     try {
-      const uploadStream = cloudinary.uploader.destroy(imageId);
+      // const deleteStream = cloudinary.uploader.destroy(imageId);
+      // const deleteStream = cloudinary.api.delete_all_resources(imageId);
 
       return {
         success: true,
-        uploadStream: uploadStream,
+        // deleteStream: deleteStream,
         imageId: imageId,
+      };
+    } catch (error) {
+      return { success: false, error };
+    }
+  }
+
+  async deleteFolder({ folderId }: { folderId: string }) {
+    try {
+      // const deleteStream = cloudinary.uploader.destroy(folderId);
+      const deleteFolder = await cloudinary.api.delete_folder(folderId);
+
+      return {
+        success: true,
+        folderId: folderId,
+        deleteFolder: deleteFolder,
       };
     } catch (error) {
       return { success: false, error };
