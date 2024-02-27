@@ -2,7 +2,6 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Res } from '@
 import { ImagesService } from './images.service';
 import axios from 'axios';
 import userAgent from 'random-useragent';
-import { Response } from 'express';
 
 
 @Controller('api/images')
@@ -28,7 +27,7 @@ export class ImagesController {
           'User-Agent': userAgent?.getRandom()
         },
       });
-      response.data.pipe(res);
+      return response.data.pipe(res);
     } catch (error) {
       return {
         success: false,

@@ -35,6 +35,7 @@ export class AdminService {
           bookId: true,
           title: true,
           thumbnail: true,
+          scrapedUrl: true,
           isGreatBook: true,
           _count: {
             select: {
@@ -70,27 +71,14 @@ export class AdminService {
       };
     }
 
-    // return {
-    //   success: true,
-    //   book
-    // }
-
     try {
       const { bookId, title, isGreatBook } = book;
-      const bookRes = await this.prismaService.$executeRaw`UPDATE "Book" SET "isGreatBook" = ${isGreatBook} WHERE "bookId" = ${bookId};`;
-      // const bookRes = await this.prismaService.book.update({
-      //   where: {
-      //     bookId: bookId
-      //   },
-      //   data: {
-      //     // title: title,
-      //     isGreatBook: isGreatBook
-      //   }
-      // });
+      const bookRes = await this.prismaService.$executeRaw`UPDATE Book SET isGreatBook = ${isGreatBook} WHERE bookId = ${bookId};`;
 
       return {
         success: true,
         book: bookRes,
+        bookData: { bookId, title, isGreatBook },
       };
     } catch (error) {
       return {

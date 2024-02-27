@@ -2,10 +2,11 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import userAgent from 'random-useragent';
 import { Injectable } from '@nestjs/common';
-import { textToSlug } from '../utils/textToSlug';
-import { CrawlBookDTO } from './dto/crawl-novel.dto';
-import { PrismaService } from '../prisma/prisma.service';
 import { listTagToId } from '../constants/data';
+import { textToSlug } from '../utils/textToSlug';
+import { CrawlBookDTO } from './dto/crawl-book.dto';
+import { PrismaService } from '../prisma/prisma.service';
+import { CrawlChapterDTO } from './dto/crawl-chapter.dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 @Injectable()
@@ -16,7 +17,7 @@ export class CrawlService {
   ) {}
 
   // Create Novel
-  async createBook(userId: number, { type = "lxhentai", take, bookUrl }: CrawlBookDTO & { type: "lxhentai" | "hentaivn" }) {
+  async createBook(userId: number, { type, bookUrl }: CrawlBookDTO) {
 
     try {
       try {
@@ -121,8 +122,8 @@ export class CrawlService {
     }
   }
 
-  // Create Novel
-  async createChapters(userId: number, { type = "lxhentai", take, bookUrl }: CrawlBookDTO & { type: "lxhentai" | "hentaivn" }) {
+  // Create Chapters
+  async createChapters(userId: number, { type = "lxhentai", bookUrl, take = 1 }: CrawlChapterDTO) {
     try {
       // Get Book
       const bookRes = await this.prismaService.book.findUnique({
@@ -153,16 +154,11 @@ export class CrawlService {
         throw new Error("Error crawling chapters");
       }
 
-      // return {
-      //   success: true,
-      //   message: 'Create chapters successfully',
-      //   chapters: bookRes,
-      // };
-
       let chapterRes = null;
       if(bookRes?._count.chapters > 0) {
         // Create Multiple Chapter
         chapterRes =  await this.createMultipleChaptersBook({
+          type: type,
           bookId: bookRes?.bookId,
           chapterUrl: bookRes?.chapters[0].next,
           start: bookRes?._count.chapters,
@@ -180,6 +176,7 @@ export class CrawlService {
       else {
         // Create Multiple Chapter
         chapterRes =  await this.createMultipleChaptersBook({
+          type: type,
           bookId: bookRes?.bookId,
           chapterUrl: bookRes?.next,
           start: bookRes?._count.chapters,
@@ -216,11 +213,13 @@ export class CrawlService {
 
   // Create Multiple Chapters Book
   async createMultipleChaptersBook({
+    type,
     bookId,
     chapterUrl,
     start,
     take,
   }: {
+    type: "lxhentai" | "hentaivn"
     bookId: number;
     chapterUrl: string;
     start: number;
@@ -232,7 +231,7 @@ export class CrawlService {
     let urlQuery = chapterUrl;
     try {
       while (i <= n) {
-        const dataChapter = await this.crawlChapter(urlQuery);
+        const dataChapter = await this.crawlChapter(type, urlQuery);
         
         if (!dataChapter?.success) {
           throw new Error(`Error crawling chapter ${i}: ${dataChapter?.error}`);
@@ -244,11 +243,20 @@ export class CrawlService {
         //   dataChapter
         // };
         
+        const baseUrl = new URL(urlQuery).origin
         const imagesChapter =
           await this.cloudinaryService.uploadImagesChapterByUrl({
+            baseUrl: baseUrl,
             folder: `/${bookId}/chapters/${i}`,
             listUrl: dataChapter?.chapter.content,
           });
+        if(!imagesChapter?.success) {
+          this.cloudinaryService.deleteImageBlog({ imageId: `/${bookId}/chapters/${i}` });
+          return {
+            success: false,
+            error: JSON.stringify(imagesChapter?.error)
+          }
+        }
 
         listChapter.push({
           bookId: bookId,
@@ -306,7 +314,6 @@ export class CrawlService {
             error: `Error creating remaining chapters: ${remainingChaptersError?.message}`,
           };
         }
-        listChapter = [];
       }
       return {
         success: false,
@@ -314,7 +321,6 @@ export class CrawlService {
       };
     }
   }
-
 
   // Crawl Book
   async crawlBook(type: "lxhentai" | "hentaivn", url: string) {
@@ -333,49 +339,38 @@ export class CrawlService {
       let author = ""
       let tags = [];
       let next = null;
-      let chapterNextUrl = null;
-
-      // HENTAIVN FAKE
-      // const title = $(`title`)
-      //   .text()
-      //   .match(/Truyện Hentai: (.+?) \| Đọc Online/)[1];
-      // const anotherName = '';
-      // const thumbnail = $('.page-ava img').attr('src');
-      // const status = 1;
-      // const author = $('.page-info a[href*="/tacgia="]').text();
-      // const description = '';
-      // const tags = []
-      // $('.tag').each((index, element) => {
-      //   const href = $(element).attr('href');
-      //   const match = href.match(/\/the-loai-(\d+)-/);
-      //   if (match) {
-      //     const number = parseInt(match[1], 10);
-      //     tags.push(number);
-      //   }
-      // });
-      // const chapterNextUrl = $('.watch-online a').attr('href');
 
       if(type === "lxhentai") {
-        // Tilte
         title = $('title').text().split("- LXHENTAI")[0].trim();
-        // Thumbnail
         const urlMatch = /url\('([^']+)'\)/.exec($('.rounded-lg.cover').attr('style'));
         thumbnail = urlMatch ? urlMatch[1] : null;
-        // Tags
         $('.bg-gray-500.hover\\:bg-gray-600.text-white.rounded.px-2.text-sm.inline-block').each((index, element) => {
           const tag = $(element).text().trim();
           if(listTagToId[tag]) {
             tags.push(listTagToId[tag]);
           }
         });
-        // Next Chapter
-        // const path = new URL(url).pathname;
         next = $(".overflow-y-auto.overflow-x-hidden>a").last().attr("href");
+      }
+      else if(type === "hentaivn") {
+        title = $(`.page-ava img`).attr('alt').split("Truyện hentai")[1].trim();
+        const text = $('title').text().match(/\[(.*?)\]/);
+        anotherName = text ? text[1] : "";
+        thumbnail = $(`.page-ava img`).attr('src');
+        status = 1;
+        author = $('span.info').eq(3).next().text();
+        description = '';
+        $('a.tag').each((index, element) => {
+            const tag = $(element).text().trim();
+            if (listTagToId[tag]) {
+                tags.push(listTagToId[tag]);
+            }
+        });
+        next = $('.watch-online a').attr('href');
       }
 
       return {
         success: true,
-        chapterNextUrl: chapterNextUrl,
         book: {
           title: title,
           thumbnail: thumbnail,
@@ -396,7 +391,7 @@ export class CrawlService {
   }
 
   // Crawl Chapter
-  async crawlChapter(url: string) {
+  async crawlChapter(type: "lxhentai" | "hentaivn", url: string) {
     try {
       const response = await axios.get(url, {
         headers: {
@@ -404,12 +399,27 @@ export class CrawlService {
         },
       });
       const $ = cheerio.load(response.data);
-      const title = '';
-      const content = $('.lazy.max-w-full.my-0.mx-auto')
-        .map((index, element) => $(element).attr('src'))
-        .get();
-      let nextChapter = $('a#btn-next').attr("href");
-      const next = nextChapter === "javascript:nm5213(0)" ? null : new URL(url).origin + nextChapter;
+
+      let title = "";
+      let content = [];
+      let next = null;
+
+      if(type === "lxhentai") {
+        title = '';
+        content = $('.lazy.max-w-full.my-0.mx-auto')
+          .map((index, element) => $(element).attr('src'))
+          .get();
+        let nextChapter = $('a#btn-next').attr("href");
+        next = nextChapter === "javascript:nm5213(0)" ? null : new URL(url).origin + nextChapter;
+      }
+      else if(type === "hentaivn") {
+        title = '';
+        content = $('.xem_anhtruyen-0.nhom-0 img')
+          .map((index, element) => $(element).attr('data-src'))
+          .get();
+        const nextChapter = $('#nextLink.b-next').attr("href");
+        next = nextChapter ? new URL(url).origin + "/" + nextChapter : null;
+      }
 
       return {
         success: true,
@@ -426,4 +436,5 @@ export class CrawlService {
       };
     }
   }
+
 }

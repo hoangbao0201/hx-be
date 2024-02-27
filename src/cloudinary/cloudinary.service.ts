@@ -73,8 +73,8 @@ export class CloudinaryService {
     }
   }
 
-  async uploadImagesChapterByUrl(data: { folder: string, listUrl: string[]; width?: number; height?: number; }) {
-    const { folder = "", listUrl = [] } = data;
+  async uploadImagesChapterByUrl(data: { baseUrl: string, folder: string, listUrl: string[]; width?: number; height?: number; }) {
+    const { baseUrl = "", folder = "", listUrl = [] } = data;
     let results = [];
 
     // const { width = 2000, height = 2000 } = data;
@@ -85,7 +85,7 @@ export class CloudinaryService {
                 const { data: imageBuffer } = await axios.get(`${url}`, {
                     responseType: 'arraybuffer',
                     headers: {
-                      referer: "https://lxmanga.net",
+                      referer: baseUrl,
                       'Sec-Ch-Ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
                       'Sec-Ch-Ua-Mobile': "?0",
                       'Sec-Ch-Ua-Platform': "Windows",
