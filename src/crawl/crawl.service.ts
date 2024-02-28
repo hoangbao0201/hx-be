@@ -23,6 +23,13 @@ export class CrawlService {
       try {
         // Crawl Data Novel
         const dataBook = await this.crawlBook(type, bookUrl);
+        console.log(dataBook);
+        return {
+          success: true,
+          bookUrl: bookUrl,
+          dataBook: dataBook
+        }
+
         if(!dataBook?.success) {
           throw new Error("Error crawling book");
         }
@@ -108,7 +115,7 @@ export class CrawlService {
               success: true,
               book: book
           };
-      }
+        }
         return {
             success: false,
             message: 'Error create book',
@@ -193,7 +200,7 @@ export class CrawlService {
       }
 
       // Update the corresponding book's updatedAt field
-      await this.prismaService.book.update({
+       await this.prismaService.book.update({
         where: { bookId: bookRes?.bookId },
         data: { updatedAt: new Date() },
       });
