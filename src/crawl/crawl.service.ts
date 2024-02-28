@@ -22,17 +22,17 @@ export class CrawlService {
     try {
       try {
         // Crawl Data Novel
-        const dataBook = await this.crawlBook(type, bookUrl);
-        console.log(dataBook);
-        return {
-          success: true,
-          bookUrl: bookUrl,
-          dataBook: dataBook
-        }
+        const dataBook = await this.crawlBook(type, bookUrl);        
 
         if(!dataBook?.success) {
           throw new Error("Error crawling book");
         }
+
+        // return {
+        //   success: true,
+        //   bookUrl: bookUrl,
+        //   dataBook: dataBook
+        // }
 
         // Create Book
         const { title, anotherName, author, description, status, tags, thumbnail, next } = dataBook?.book;
@@ -335,9 +335,14 @@ export class CrawlService {
   // Crawl Book
   async crawlBook(type: "lxhentai" | "hentaivn", url: string) {
     try {
+      const baseUrl = new URL(url).origin
       const response = await axios.get(url, {
         headers: {
-          'User-Agent': userAgent?.getRandom(),
+          referer: baseUrl,
+          'Sec-Ch-Ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
+          'Sec-Ch-Ua-Mobile': "?0",
+          'Sec-Ch-Ua-Platform': "Windows",
+          'User-Agent': userAgent?.getRandom()
         },
       });
       const $ = cheerio.load(response.data);
@@ -403,9 +408,14 @@ export class CrawlService {
   // Crawl Chapter
   async crawlChapter(type: "lxhentai" | "hentaivn", url: string) {
     try {
+      const baseUrl = new URL(url).origin;
       const response = await axios.get(url, {
         headers: {
-          'User-Agent': userAgent?.getRandom(),
+          referer: baseUrl,
+          'Sec-Ch-Ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
+          'Sec-Ch-Ua-Mobile': "?0",
+          'Sec-Ch-Ua-Platform': "Windows",
+          'User-Agent': userAgent?.getRandom()
         },
       });
       const $ = cheerio.load(response.data);
