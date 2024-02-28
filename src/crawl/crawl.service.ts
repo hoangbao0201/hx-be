@@ -193,7 +193,7 @@ export class CrawlService {
       }
 
       // Update the corresponding book's updatedAt field
-      this.prismaService.book.update({
+      await this.prismaService.book.update({
         where: { bookId: bookRes?.bookId },
         data: { updatedAt: new Date() },
       });
