@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Request } from '@nestjs/common';
 import { BookService } from './book.service';
+import { PipGuard } from '../auth/guard/pip.guard';
 
 @Controller('/api/books')
 export class BookController {
@@ -24,10 +25,21 @@ export class BookController {
     return this.bookService.findAllSeo();
   }
 
+  // Increase View Book
+  @UseGuards(PipGuard)
+  @Post("/increase/views/:bookId")
+  increaseViews(
+    @Request() req,
+    @Param("bookId") bookId: number
+  ){
+    return this.bookService.increaseViews({ user: req.user, bookId });
+  }
+
   @Get("/:bookId")
   findOne(
     @Param("bookId") bookId: number
   ){
     return this.bookService.findOne(bookId);
   }
+
 }

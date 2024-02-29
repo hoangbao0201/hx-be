@@ -25,4 +25,13 @@ export class AdminController {
   ) {
     return this.adminService.updateBook(req.user, body);
   }
+
+  @UseGuards(JwtGuard)
+  @Delete('/books/:bookId')
+  deleteBook(
+    @Request() req,
+    @Param("bookId") bookId: number
+  ) {
+    return this.adminService.deleteBook(req.user, bookId);
+  }
 }

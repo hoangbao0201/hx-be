@@ -87,4 +87,29 @@ export class AdminService {
       };
     }
   }
+
+  async deleteBook(
+    user: { userId: number; username: string; role: { name: string } },
+    bookId: number
+  ) {
+    try {
+      const deleteBook = await this.prismaService.book.delete({
+        where: {
+          bookId: +bookId,
+          postedBy: {
+            userId: user.userId
+          }
+        }
+      })
+      return {
+        success: true,
+        book: deleteBook
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error,
+      };
+    }
+  }
 }
