@@ -11,7 +11,7 @@ export class AdminService {
     user: { userId: number; username: string; role: { name: string } },
     options: { take?: number; skip?: number; sort?: 'desc' | 'asc' },
   ) {
-    if (user?.role.name === 'guest') {
+    if (user?.role.name !== 'admin') {
       return {
         success: false,
         error: 'You are not an admin',
@@ -64,7 +64,7 @@ export class AdminService {
     user: { userId: number; username: string; role: { name: string } },
     book: { bookId: number, title: string, isGreatBook: boolean }
   ) {
-    if (user?.role.name === 'guest') {
+    if (user?.role.name !== 'admin') {
       return {
         success: false,
         error: 'You are not an admin',
@@ -92,6 +92,12 @@ export class AdminService {
     user: { userId: number; username: string; role: { name: string } },
     bookId: number
   ) {
+    if (user?.role.name !== 'admin') {
+      return {
+        success: false,
+        error: 'You are not an admin',
+      };
+    }
     try {
       const deleteBook = await this.prismaService.book.delete({
         where: {
@@ -104,6 +110,29 @@ export class AdminService {
       return {
         success: true,
         book: deleteBook
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error,
+      };
+    }
+  }
+
+  async getViews(
+    user: { userId: number; username: string; role: { name: string } },
+  ) {
+    if (user?.role.name !== 'admin') {
+      return {
+        success: false,
+        error: 'You are not an admin',
+      };
+    }
+    try {
+      const views = await this.prismaService.userView.count({});
+      return {
+        success: true,
+        views: views
       }
     } catch (error) {
       return {

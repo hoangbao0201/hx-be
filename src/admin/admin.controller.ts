@@ -34,4 +34,12 @@ export class AdminController {
   ) {
     return this.adminService.deleteBook(req.user, bookId);
   }
+
+  @UseGuards(JwtGuard)
+  @Get('/books/views')
+  getViews(
+    @Request() req,
+  ) {
+    return this.adminService.getViews(req.user);
+  }
 }
