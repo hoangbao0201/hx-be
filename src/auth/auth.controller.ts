@@ -28,14 +28,14 @@ export class AuthController {
     }
 
     // GET .../api/auth/google
-    @Get('/google')
-    @UseGuards(AuthGuard('google'))
-    google(@Request() req) {}
+    // @Get('/google')
+    // @UseGuards(AuthGuard('google'))
+    // google(@Request() req) {}
 
-    // GET .../api/auth/google
-    @Get('/google/callback')
-    @UseGuards(AuthGuard('google'))
-    async googleAuthCallback(@Req() req, @Res() res: Response) {
-        return this.authService.callbackGoogle(req, res);
-    }
+    // // GET .../api/auth/google
+    // @Get('/google/callback')
+    // @UseGuards(AuthGuard('google'))
+    // async googleAuthCallback(@Req() req, @Res() res: Response) {
+    //     return this.authService.callbackGoogle(req, res);
+    // }
 }
