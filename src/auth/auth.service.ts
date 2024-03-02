@@ -171,31 +171,36 @@ export class AuthService {
         }
     }
 
-    async callbackGoogle(req) {
+    async callbackGoogle(req, res) {
         try {
             if (!req.user) {
                 throw new Error();
             }
-            const user = await this.validateUserBySocial("hoangbao020103@gmail.com");
+            const user = await this.validateUserBySocial("hxclub01@gmail.com");
             const payload = {
                 userId: user.userId,
-                username: user.username
+                username: user.username,
+                role: {
+                    name: user?.role.roleName
+                }
             };
-            return {
-                user,
-                reqUser: req?.user,
-                backendTokens: {
-                    accessToken: await this.jwtService.signAsync(payload, {
-                        expiresIn: '1h',
-                        secret: this.configService.get('TOKEN_SETCRET'),
-                    }),
-                    refreshToken: await this.jwtService.signAsync(payload, {
-                        expiresIn: '7d',
-                        secret: this.configService.get('REFRESH_TOKEN_SETCRET'),
-                    }),
-                    expiresIn: new Date().setTime(new Date().getTime() + EXPIRE_TIME),
-                },
-            };
+            // return {
+            //     user,
+            //     reqUser: req?.user,
+            //     backendTokens: {
+            //         accessToken: await this.jwtService.signAsync(payload, {
+            //             expiresIn: '1h',
+            //             secret: this.configService.get('TOKEN_SETCRET'),
+            //         }),
+            //         refreshToken: await this.jwtService.signAsync(payload, {
+            //             expiresIn: '7d',
+            //             secret: this.configService.get('REFRESH_TOKEN_SETCRET'),
+            //         }),
+            //         expiresIn: new Date().setTime(new Date().getTime() + EXPIRE_TIME),
+            //     },
+            // };
+            
+            res.redirect(`http://localhost:3000/auth/login?token=123`);
         } catch (error) {
             return {
                 success: false,

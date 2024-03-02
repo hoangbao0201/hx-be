@@ -1,12 +1,15 @@
-import { Get, Injectable } from '@nestjs/common';
-import { CreateBookDto } from './dto/create-book.dto';
-import { UpdateBookDto } from './dto/update-book.dto';
+import { Get, Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { Cache } from "cache-manager";
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
 @Injectable()
 export class BookService {
-  constructor(private prismaService: PrismaService) {}
+  constructor(
+    private prismaService: PrismaService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache
+  ) {}
 
   async findAll(options: {
     q?: string;
@@ -28,6 +31,17 @@ export class BookService {
       sort = 'desc',
       otherId,
     } = options;
+
+    const cvQuery = `/api/books?genres=${genres}&notgenres=${notgenres || ""}&q=${q || ""}&take=${take || ""}&skip=${skip || ""}&sort=${sort || ""}`;
+    const cacheValue: any = await this.cacheManager.get(cvQuery);
+    if(cacheValue) {
+      return {
+        success: true,
+        cache: true,
+        countBook: cacheValue?.countBook,
+        books: cacheValue?.books
+      };
+    }
 
     try {
       const haveTags = genres ? genres?.split(",") : null;
@@ -98,6 +112,8 @@ export class BookService {
       const countBook = await this.prismaService.book.count({
         where: where,
       });
+
+      await this.cacheManager.set(cvQuery, { countBook: countBook, books: books }, 60000);
 
       return {
         success: true,
