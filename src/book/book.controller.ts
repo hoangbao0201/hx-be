@@ -27,12 +27,13 @@ export class BookController {
 
   // Increase View Book
   @UseGuards(PipGuard)
-  @Post("/increase/views/:bookId")
+  @Post("/increase/views/:bookId/:chapterNumber")
   increaseViews(
     @Request() req,
-    @Param("bookId") bookId: number
+    @Param("bookId") bookId: number,
+    @Param("chapterNumber") chapterNumber: number,
   ){
-    return this.bookService.increaseViews({ user: req.user, bookId });
+    return this.bookService.increaseViews({ user: req.user, bookId, chapterNumber });
   }
 
   @Get("/:bookId")

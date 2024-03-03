@@ -164,6 +164,11 @@ export class BookService {
             select: {
               title: true,
               chapterNumber: true,
+              _count: {
+                select: {
+                  views: true
+                }
+              },
               createdAt: true,
               updatedAt: true,
             },
@@ -214,11 +219,12 @@ export class BookService {
     }
   }
 
-  async increaseViews({ user, bookId }: { user?: null | { userId: number }, bookId: number }) {
+  async increaseViews({ user, bookId, chapterNumber }: { user?: null | { userId: number }, bookId: number, chapterNumber: number }) {
     try {
       const book = await this.prismaService.userView.create({
         data: {
           bookId: +bookId,
+          chapterNumber: +chapterNumber,
           userId: user ? user?.userId : null,
         }
       })
