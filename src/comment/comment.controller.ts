@@ -56,7 +56,7 @@ export class CommentController {
     });
   }
 
-  @Patch('/notification/:commentId')
+  @Patch('/read/:commentId')
   @UseGuards(JwtGuard)
   readComment(@Request() req, @Param('commentId') commentId: number) {
     return this.commentService.readComment({

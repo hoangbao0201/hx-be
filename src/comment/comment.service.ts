@@ -279,43 +279,10 @@ export class CommentService {
         data: {
           isRead: true
         },
-        select: {
-          parent: {
-            select: {
-              bookId: true,
-              chapterNumber: true,
-              commentId: true,
-              commentText: true,
-              parentId: true,
-              createdAt: true,
-              updatedAt: true,
-              _count: {
-                select: {
-                  replyComments: true
-                }
-              },
-              sender: {
-                select: {
-                  userId: true,
-                  name: true,
-                  username: true,
-                  rank: true,
-                  role: {
-                    select: {
-                      roleId: true,
-                      roleName: true
-                    }
-                  },
-                  avatarUrl: true
-                }
-              }
-            }
-          }
-        }
       });
       return {
         success: true,
-        comment: comment?.parent
+        comment: comment
       };
     } catch (error) {
       return {
