@@ -8,10 +8,12 @@ import { CrawlBookDTO } from './dto/crawl-book.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CrawlChapterDTO } from './dto/crawl-chapter.dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class CrawlService {
   constructor(
+    private configService: ConfigService,
     private prismaService: PrismaService,
     private cloudinaryService: CloudinaryService,
   ) {}
@@ -39,6 +41,7 @@ export class CrawlService {
         const bookRes = await this.prismaService.book.create({
           data: {
             title: title,
+            nameImage: this.configService.get("CLOUDINARY_NAME"),
             next: dataBook?.book.next,
             slug: textToSlug(title),
             anotherName: anotherName,
@@ -273,6 +276,7 @@ export class CrawlService {
           chapterNumber: i,
           next: dataChapter?.next,
           title: dataChapter?.chapter.title,
+          nameImage: this.configService.get("CLOUDINARY_NAME"),
           content: JSON.stringify(imagesChapter?.images),
         });
 

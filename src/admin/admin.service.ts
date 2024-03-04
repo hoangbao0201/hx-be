@@ -34,6 +34,7 @@ export class AdminService {
         select: {
           bookId: true,
           title: true,
+          nameImage: true,
           thumbnail: true,
           scrapedUrl: true,
           isGreatBook: true,
