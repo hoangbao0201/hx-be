@@ -46,6 +46,14 @@ export class AdminController {
     return this.adminService.getViews(req.user);
   }
 
+  @UseGuards(JwtGuard)
+  @Get('/users')
+  getUsers(
+    @Request() req,
+  ) {
+    return this.adminService.getUsers(req.user);
+  }
+
   @Get('/test')
   async test() {
     // const response = await axios.get("https://www.vipads.live/vn/886F8AFE-FF83-1620-33-D7BCF23CEE7C.blpha", {

@@ -177,16 +177,27 @@ export class AuthService {
                 throw new Error();
             }
             const user = await this.validateUserBySocial("hxclub01@gmail.com");
+
+            // const token = await this.jwtService.signAsync({
+            //     email: user?.email,
+            //     password: user?.password
+            // }, {
+            //     expiresIn: '1m',
+            //     secret: this.configService.get('TOKEN_SETCRET'),
+            // })
             const payload = {
                 userId: user.userId,
                 username: user.username,
                 role: {
                     name: user?.role.roleName
-                }
+                },
+                email: user?.email,
+                password: user?.password
             };
-            // return {
+
+            // const token = {
             //     user,
-            //     reqUser: req?.user,
+            //     // reqUser: req?.user,
             //     backendTokens: {
             //         accessToken: await this.jwtService.signAsync(payload, {
             //             expiresIn: '1h',
@@ -199,8 +210,13 @@ export class AuthService {
             //         expiresIn: new Date().setTime(new Date().getTime() + EXPIRE_TIME),
             //     },
             // };
+
+            const token = await this.jwtService.signAsync(payload, {
+                expiresIn: '1m',
+                secret: this.configService.get('TOKEN_SETCRET'),
+            });
             
-            res.redirect(`http://localhost:3000/auth/login?token=123`);
+            res.redirect(`http://localhost:3000/auth/login?token=${token}`);
         } catch (error) {
             return {
                 success: false,
@@ -228,7 +244,7 @@ export class AuthService {
         const user = await this.userService.findByAccout(accout);
 
         if (user) {
-            delete user.password;
+            // delete user.password;
             return user;
         }
         throw new UnauthorizedException();

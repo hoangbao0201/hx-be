@@ -142,4 +142,47 @@ export class AdminService {
       };
     }
   }
+
+  async getUsers(
+    user: { userId: number; username: string; role: { name: string } },
+  ) {
+    if (user?.role.name !== 'admin') {
+      return {
+        success: false,
+        error: 'You are not an admin',
+      };
+    }
+    try {
+      const users = await this.prismaService.user.findMany({
+        take: 50,
+        skip: 0,
+        where: {
+          NOT: {
+            userId: user?.userId
+          }
+        },
+        select: {
+          userId: true,
+          name: true,
+          username: true,
+          email: true,
+          _count: {
+            select: {
+              userViews: true
+            }
+          }
+          // password: true,
+        }
+      });
+      return {
+        success: true,
+        users: users
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error,
+      };
+    }
+  }
 }
