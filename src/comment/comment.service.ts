@@ -272,9 +272,7 @@ export class CommentService {
       const comment = await this.prismaService.comment.update({
         where: {
           commentId: +commentId,
-          sender: {
-            userId: userId
-          }
+          receiverId: +userId
         },
         data: {
           isRead: true
