@@ -31,7 +31,7 @@ export class CrawlService {
         }
 
         // return {
-        //   success: true,
+        //   success: false,
         //   bookUrl: bookUrl,
         //   dataBook: dataBook
         // }
@@ -103,13 +103,14 @@ export class CrawlService {
           type: type,
           book: {
             ...dataBook?.book,
+            nameImage: this.configService.get("CLOUDINARY_NAME"),
             thumbnail: dataThumbnail?.image
           },
         };
       }
       catch (error) {
         if (error.code === 'P2002') {
-          const book = await this.prismaService.book.findFirst({
+          const book = await this.prismaService.book.findUnique({
             where: {
               scrapedUrl: bookUrl,
             }
@@ -363,6 +364,7 @@ export class CrawlService {
         title = $('title').text().split("- LXHENTAI")[0].trim();
         const urlMatch = /url\('([^']+)'\)/.exec($('.rounded-lg.cover').attr('style'));
         thumbnail = urlMatch ? urlMatch[1] : null;
+        author = $('.mt-2 .text-blue-500').first().text()
         $('.bg-gray-500.hover\\:bg-gray-600.text-white.rounded.px-2.text-sm.inline-block').each((index, element) => {
           const tag = $(element).text().trim();
           if(listTagToId[tag]) {
