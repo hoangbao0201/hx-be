@@ -69,6 +69,13 @@ export class AuthService {
     async login(authDTO: LoginDTO) {
         try {
             const user = await this.validateUser(authDTO);
+            if(!user) {
+                // return {
+                //     success: false,
+                //     message: "Tài khoản hoặc mật khẩu không đúng"
+                // }
+                throw new UnauthorizedException();
+            }
             const payload = {
                 userId: user.userId,
                 username: user.username,
@@ -77,23 +84,22 @@ export class AuthService {
                 }
             };
 
-            // return {
-            //     success: true,
-            //     user: user
-            // }
             return {
-                user,
-                backendTokens: {
-                    accessToken: await this.jwtService.signAsync(payload, {
-                        expiresIn: '1h',
-                        secret: this.configService.get('TOKEN_SETCRET'),
-                    }),
-                    refreshToken: await this.jwtService.signAsync(payload, {
-                        expiresIn: '7d',
-                        secret: this.configService.get('REFRESH_TOKEN_SETCRET'),
-                    }),
-                    expiresIn: new Date().setTime(new Date().getTime() + EXPIRE_TIME),
-                },
+                success: true,
+                data: {
+                    user,
+                    backendTokens: {
+                        accessToken: await this.jwtService.signAsync(payload, {
+                            expiresIn: '1h',
+                            secret: this.configService.get('TOKEN_SETCRET'),
+                        }),
+                        refreshToken: await this.jwtService.signAsync(payload, {
+                            expiresIn: '7d',
+                            secret: this.configService.get('REFRESH_TOKEN_SETCRET'),
+                        }),
+                        expiresIn: new Date().setTime(new Date().getTime() + EXPIRE_TIME),
+                    },
+                }
             };
         } catch (error) {
             return {
