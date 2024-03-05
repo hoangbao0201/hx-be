@@ -24,7 +24,7 @@ export class CrawlService {
     try {
       try {
         // Crawl Data Novel
-        const dataBook = await this.crawlBook(type, bookUrl);        
+        const dataBook = await this.crawlBook(type, bookUrl.trim());        
 
         if(!dataBook?.success) {
           throw new Error("Error crawling book");
@@ -117,6 +117,7 @@ export class CrawlService {
           })
           return {
               success: true,
+              exist: true,
               book: book
           };
         }
@@ -139,13 +140,13 @@ export class CrawlService {
       // Get Book
       const bookRes = await this.prismaService.book.findUnique({
         where: {
-          scrapedUrl: bookUrl
+          scrapedUrl: bookUrl.trim()
         },
         select: {
           bookId: true,
           next: true,
           chapters: {
-            take: 1,
+            take: 2,
             orderBy: {
               chapterNumber: "desc"
             },
@@ -165,6 +166,17 @@ export class CrawlService {
         throw new Error("Error crawling chapters");
       }
 
+      if(bookRes?.chapters.length > 0 && !bookRes?.chapters[0].next) {
+        const dataChapter = await this.crawlChapter(type, bookRes?.chapters[1].next);
+        if(!dataChapter?.success) {
+          return {
+            success: false,
+            error: dataChapter?.error,
+          };
+        }
+        bookRes.chapters[0].next = dataChapter?.next
+      }
+
       let chapterRes = null;
       if(bookRes?._count.chapters > 0) {
         // Create Multiple Chapter
@@ -177,7 +189,6 @@ export class CrawlService {
         });
 
         if(!chapterRes?.success) {
-          // throw new Error(JSON.stringify(chapterRes?.error));
           return {
             success: false,
             error: chapterRes?.error,
@@ -195,7 +206,6 @@ export class CrawlService {
         });
 
         if(!chapterRes?.success) {
-          // throw new Error(JSON.stringify(chapterRes?.error));
           return {
             success: false,
             error: chapterRes?.error,
