@@ -1,14 +1,14 @@
 import { Get, Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
-import { Cache } from "cache-manager";
+import { Cache } from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
 @Injectable()
 export class BookService {
   constructor(
     private prismaService: PrismaService,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async findAll(options: {
@@ -32,22 +32,22 @@ export class BookService {
       otherId,
     } = options;
 
-    const cvQuery = `/api/books?genres=${genres}&notgenres=${notgenres || ""}&q=${q || ""}&take=${take || ""}&skip=${skip || ""}&sort=${sort || ""}`;
+    const cvQuery = `/api/books?genres=${genres}&notgenres=${notgenres || ''}&q=${q || ''}&take=${take || ''}&skip=${skip || ''}&sort=${sort || ''}`;
     const cacheValue: any = await this.cacheManager.get(cvQuery);
-    if(cacheValue) {
+    if (cacheValue) {
       return {
         success: true,
         cache: true,
         countBook: cacheValue?.countBook,
-        books: cacheValue?.books
+        books: cacheValue?.books,
       };
     }
 
     try {
-      const haveTags = genres ? genres?.split(",") : null;
-      const notTags = notgenres ? notgenres?.split(",") : null;
+      const haveTags = genres ? genres?.split(',') : null;
+      const notTags = notgenres ? notgenres?.split(',') : null;
 
-      let where: Prisma.BookWhereInput = {}
+      let where: Prisma.BookWhereInput = {};
       if (haveTags) {
         where = {
           ...where,
@@ -55,12 +55,12 @@ export class BookService {
             tags: {
               some: {
                 tagId: {
-                  equals: tagT
-                }
-              }
-            }
-          }))
-        }
+                  equals: tagT,
+                },
+              },
+            },
+          })),
+        };
       }
       if (notTags) {
         where = {
@@ -68,25 +68,25 @@ export class BookService {
           tags: {
             none: {
               tagId: {
-                in: notTags
-              }
-            }
-          }
-        }
+                in: notTags,
+              },
+            },
+          },
+        };
       }
       if (q) {
         where = {
           ...where,
           title: {
-            contains: q
-          }
-        }
+            contains: q,
+          },
+        };
       }
       const books = await this.prismaService.book.findMany({
         skip: +skip,
         take: +take,
         orderBy: {
-          updatedAt: sort
+          updatedAt: sort,
         },
         where: where,
         select: {
@@ -114,7 +114,11 @@ export class BookService {
         where: where,
       });
 
-      await this.cacheManager.set(cvQuery, { countBook: countBook, books: books }, 60000);
+      await this.cacheManager.set(
+        cvQuery,
+        { countBook: countBook, books: books },
+        60000,
+      );
 
       return {
         success: true,
@@ -168,8 +172,8 @@ export class BookService {
               chapterNumber: true,
               _count: {
                 select: {
-                  views: true
-                }
+                  views: true,
+                },
               },
               createdAt: true,
               updatedAt: true,
@@ -180,7 +184,8 @@ export class BookService {
           _count: {
             select: {
               chapters: true,
-              userViews: true
+              userViews: true,
+              usersFollow: true,
             },
           },
         },
@@ -205,8 +210,8 @@ export class BookService {
           slug: true,
           bookId: true,
           createdAt: true,
-          updatedAt: true
-        }
+          updatedAt: true,
+        },
       });
 
       return {
@@ -221,20 +226,211 @@ export class BookService {
     }
   }
 
-  async increaseViews({ user, bookId, chapterNumber }: { user?: null | { userId: number }, bookId: number, chapterNumber: number }) {
+  async increaseViews({
+    user,
+    bookId,
+    chapterNumber,
+  }: {
+    user?: null | { userId: number };
+    bookId: number;
+    chapterNumber: number;
+  }) {
     try {
       const book = await this.prismaService.userView.create({
         data: {
           bookId: +bookId,
           chapterNumber: +chapterNumber,
           userId: user ? user?.userId : null,
-        }
-      })
+        },
+      });
       return {
         success: true,
         book: book,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error,
+      };
+    }
+  }
+
+  async booksFollow(options: {
+    user: { userId: number };
+    take?: number,
+    skip?: number,
+    sort?: "desc" | "asc"
+  }) {
+    try {
+      const {user, take = 24, skip = 0, sort = "desc"} = options;
+      const books = await this.prismaService.userBookFollowModel.findMany({
+        take: +take,
+        skip: +skip,
+        where: {
+          userId: user?.userId
+        },
+        orderBy: {
+          book: {
+            updatedAt: sort
+          }
+        },
+        include: {
+          book: {
+            select: {
+              bookId: true,
+              title: true,
+              slug: true,
+              nameImage: true,
+              thumbnail: true,
+              scrapedUrl: true,
+              isGreatBook: true,
+              chapters: {
+                take: 2,
+                orderBy: {
+                  chapterNumber: 'desc',
+                },
+                select: {
+                  chapterNumber: true,
+                  createdAt: true,
+                },
+              },
+            }
+          }
+        }
+      })
+      // const books = await this.prismaService.book.findMany({
+      //   skip: +skip,
+      //   take: +take,
+      //   where: {
+          // userId: user?.userId,
+        // },
+        // orderBy: {
+
+        // },
+        // select: {
+        //   chapters: {
+
+        //   }
+        // }
+        // select: {
+        //   book: {
+        //     select: {
+        //       bookId: true,
+        //       title: true,
+        //       slug: true,
+        //       nameImage: true,
+        //       thumbnail: true,
+        //       scrapedUrl: true,
+        //       isGreatBook: true,
+        //       chapters: {
+        //         take: 2,
+        //         orderBy: {
+        //           chapterNumber: 'desc',
+        //         },
+        //         select: {
+        //           chapterNumber: true,
+        //           createdAt: true,
+        //         },
+        //       },
+        //     }
+        //   }
+        // },
+      // });
+
+      const countBook = await this.prismaService.userBookFollowModel.count({
+        where: {
+          userId: user?.userId,
+        },
+      });
+
+      // await this.cacheManager.set(
+      //   cvQuery,
+      //   { countBook: countBook, books: books },
+      //   60000,
+      // );
+      return {
+        success: true,
+        countPage: countBook,
+        books: books
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error,
+      };
+    }
+  }
+
+  async checkFollow({
+    user,
+    bookId,
+  }: {
+    user: { userId: number };
+    bookId: number;
+  }) {
+    try {
+      const book = await this.prismaService.userBookFollowModel.findUnique({
+        where: {
+          userId_bookId: {
+            bookId: +bookId,
+            userId: +user?.userId,
+          },
+        },
+      });
+      return {
+        success: true,
+        isFollowed: book ? true : false,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error,
+      };
+    }
+  }
+
+  async actionFollow({
+    user,
+    bookId,
+    type,
+  }: {
+    user: { userId: number };
+    bookId: number;
+    type: 'follow' | 'unfollow';
+  }) {
+    try {
+      if (type === 'unfollow') {
+        await this.prismaService.userBookFollowModel.delete({
+          where: {
+            userId_bookId: {
+              userId: +user?.userId,
+              bookId: +bookId,
+            },
+          },
+        });
+        return {
+          success: true,
+          message: 'unfollow',
+        };
+      } else if (type === 'follow') {
+        await this.prismaService.userBookFollowModel.create({
+          data: {
+            userId: +user?.userId,
+            bookId: +bookId,
+          },
+        });
+        return {
+          success: true,
+          message: 'follow',
+        };
       }
     } catch (error) {
+      if(error.code === "") {
+        return {
+          success: true,
+          message: type === 'follow' ? 'unfollow' : 'follow',
+        };
+      }
       return {
         success: false,
         error: error,
