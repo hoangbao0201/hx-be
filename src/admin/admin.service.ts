@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class AdminService {
@@ -130,10 +131,30 @@ export class AdminService {
       };
     }
     try {
-      const views = await this.prismaService.userView.count({});
+      const countView = await this.prismaService.userView.count({});
+      
+      const lastDate = Date.now() - (24 * 60 * 60 * 1000);
+      // const views = await this.prismaService.userView.findMany({
+      //   where: {
+      //     createdAt: {
+      //       gte: new Date(lastDate),
+      //     },
+      //   },
+      //   select: {
+          
+      //   }
+      // })
+      // const views = await this.prismaService.$executeRaw`SELECT * FROM 'UserView'`;
+        // -- FROM UserView 
+        // -- WHERE createdAt >= DATE_SUB(NOW(), INTERVAL 24 HOUR) 
+        // -- GROUP BY HOUR(createdAt) 
+        // -- ORDER BY hour;
+
       return {
         success: true,
-        views: views
+        countView: countView,
+        // views: 1,
+        // test: views,
       }
     } catch (error) {
       return {
@@ -154,11 +175,16 @@ export class AdminService {
     }
     try {
       const users = await this.prismaService.user.findMany({
-        take: 50,
+        take: 5,
         skip: 0,
         where: {
           NOT: {
             userId: user?.userId
+          }
+        },
+        orderBy: {
+          userViews: {
+            _count: "desc"
           }
         },
         select: {
@@ -174,8 +200,11 @@ export class AdminService {
           // password: true,
         }
       });
+
+      const countUser = await this.prismaService.user.count({});
       return {
         success: true,
+        countUser: countUser,
         users: users
       }
     } catch (error) {
