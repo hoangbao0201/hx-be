@@ -1,8 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { CreateAdminDto } from './dto/create-admin.dto';
-import { UpdateAdminDto } from './dto/update-admin.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import draftToHtml from 'draftjs-to-html';
 
 @Injectable()
 export class AdminService {
@@ -19,11 +17,7 @@ export class AdminService {
       };
     }
 
-    const {
-      take = 24,
-      skip = 0,
-      sort = 'desc',
-    } = options;
+    const { take = 24, skip = 0, sort = 'desc' } = options;
 
     try {
       const books = await this.prismaService.book.findMany({
@@ -64,7 +58,7 @@ export class AdminService {
 
   async updateBook(
     user: { userId: number; username: string; role: { name: string } },
-    book: { bookId: number, title: string, isGreatBook: boolean }
+    book: { bookId: number; title: string; isGreatBook: boolean },
   ) {
     if (user?.role.name !== 'admin') {
       return {
@@ -75,7 +69,8 @@ export class AdminService {
 
     try {
       const { bookId, title, isGreatBook } = book;
-      const bookRes = await this.prismaService.$executeRaw`UPDATE Book SET isGreatBook = ${isGreatBook} WHERE bookId = ${bookId};`;
+      const bookRes = await this.prismaService
+        .$executeRaw`UPDATE Book SET isGreatBook = ${isGreatBook} WHERE bookId = ${bookId};`;
 
       return {
         success: true,
@@ -92,7 +87,7 @@ export class AdminService {
 
   async deleteBook(
     user: { userId: number; username: string; role: { name: string } },
-    bookId: number
+    bookId: number,
   ) {
     if (user?.role.name !== 'admin') {
       return {
@@ -105,14 +100,14 @@ export class AdminService {
         where: {
           bookId: +bookId,
           postedBy: {
-            userId: user.userId
-          }
-        }
-      })
+            userId: user.userId,
+          },
+        },
+      });
       return {
         success: true,
-        book: deleteBook
-      }
+        book: deleteBook,
+      };
     } catch (error) {
       return {
         success: false,
@@ -121,9 +116,11 @@ export class AdminService {
     }
   }
 
-  async getViews(
-    user: { userId: number; username: string; role: { name: string } },
-  ) {
+  async getViews(user: {
+    userId: number;
+    username: string;
+    role: { name: string };
+  }) {
     if (user?.role.name !== 'admin') {
       return {
         success: false,
@@ -132,8 +129,8 @@ export class AdminService {
     }
     try {
       const countView = await this.prismaService.userView.count({});
-      
-      const lastDate = Date.now() - (24 * 60 * 60 * 1000);
+
+      const lastDate = Date.now() - 24 * 60 * 60 * 1000;
       // const views = await this.prismaService.userView.findMany({
       //   where: {
       //     createdAt: {
@@ -141,21 +138,21 @@ export class AdminService {
       //     },
       //   },
       //   select: {
-          
+
       //   }
       // })
       // const views = await this.prismaService.$executeRaw`SELECT * FROM 'UserView'`;
-        // -- FROM UserView 
-        // -- WHERE createdAt >= DATE_SUB(NOW(), INTERVAL 24 HOUR) 
-        // -- GROUP BY HOUR(createdAt) 
-        // -- ORDER BY hour;
+      // -- FROM UserView
+      // -- WHERE createdAt >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+      // -- GROUP BY HOUR(createdAt)
+      // -- ORDER BY hour;
 
       return {
         success: true,
         countView: countView,
         // views: 1,
         // test: views,
-      }
+      };
     } catch (error) {
       return {
         success: false,
@@ -164,9 +161,11 @@ export class AdminService {
     }
   }
 
-  async getUsers(
-    user: { userId: number; username: string; role: { name: string } },
-  ) {
+  async getUsers(user: {
+    userId: number;
+    username: string;
+    role: { name: string };
+  }) {
     if (user?.role.name !== 'admin') {
       return {
         success: false,
@@ -179,13 +178,13 @@ export class AdminService {
         skip: 0,
         where: {
           NOT: {
-            userId: user?.userId
-          }
+            userId: user?.userId,
+          },
         },
         orderBy: {
           userViews: {
-            _count: "desc"
-          }
+            _count: 'desc',
+          },
         },
         select: {
           userId: true,
@@ -194,19 +193,65 @@ export class AdminService {
           email: true,
           _count: {
             select: {
-              userViews: true
-            }
-          }
+              userViews: true,
+            },
+          },
           // password: true,
-        }
+        },
       });
 
       const countUser = await this.prismaService.user.count({});
       return {
         success: true,
         countUser: countUser,
-        users: users
-      }
+        users: users,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error,
+      };
+    }
+  }
+
+  async test() {
+    try {
+      // const page = 2;
+      // const comments = await this.prismaService.comment.findMany({
+      //   take: page * 30,
+      //   skip: (page - 1)*30,
+      //   orderBy: {
+      //     createdAt: "desc"
+      //   },
+      //   select: {
+      //     commentId: true,
+      //     commentText: true
+      //   }
+      // });
+
+      // const updatedComments = [];
+      // for (const comment of comments) {
+      //   const updateComment = await this.prismaService.comment.update({
+      //       where: {
+      //         commentId: comment.commentId,
+      //       },
+      //       data: {
+      //         commentText: comment?.commentText
+      //       },
+      //       select: {
+      //         commentId: true,
+      //         commentText: true
+      //       }
+      //   });
+      //   updatedComments.push(updateComment);
+      // }
+
+      return {
+        success: true,
+        // comments: comments[0].commentText.replace('\"<p>p>', '\"<p>').replace('\\\"', ''),
+        // test: comments,
+        // updatedComments: updatedComments,
+      };
     } catch (error) {
       return {
         success: false,

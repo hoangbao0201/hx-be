@@ -56,18 +56,6 @@ export class AdminController {
 
   @Get('/test')
   async test() {
-    // const response = await axios.get("https://www.vipads.live/vn/886F8AFE-FF83-1620-33-D7BCF23CEE7C.blpha", {
-    //   headers: {
-    //     referer: "hoangbaodev.com",
-    //     'Sec-Ch-Ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
-    //     'Sec-Ch-Ua-Mobile': "?0",
-    //     'Sec-Ch-Ua-Platform': "Windows",
-    //     'User-Agent': 'Mozilla/5.0 (Linux; Android 10; SM-G975F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 Mobile Safari/537.36'
-    //   }
-    // });
-    return {
-      success: true,
-      // data: response
-    }
+    return this.adminService.test();
   }
 }
