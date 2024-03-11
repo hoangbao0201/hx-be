@@ -130,7 +130,7 @@ export class AdminService {
     try {
       const countView = await this.prismaService.userView.count({});
 
-      const lastDate = Date.now() - 24 * 60 * 60 * 1000;
+      // const lastDate = Date.now() - 24 * 60 * 60 * 1000;
       // const views = await this.prismaService.userView.findMany({
       //   where: {
       //     createdAt: {
@@ -182,20 +182,14 @@ export class AdminService {
           },
         },
         orderBy: {
-          userViews: {
-            _count: 'desc',
-          },
+          rank: "desc"
         },
         select: {
           userId: true,
           name: true,
           username: true,
           email: true,
-          _count: {
-            select: {
-              userViews: true,
-            },
-          },
+          rank: true
           // password: true,
         },
       });
@@ -216,18 +210,26 @@ export class AdminService {
 
   async test() {
     try {
-      // const page = 2;
-      // const comments = await this.prismaService.comment.findMany({
-      //   take: page * 30,
-      //   skip: (page - 1)*30,
-      //   orderBy: {
-      //     createdAt: "desc"
-      //   },
+      // const users = await this.prismaService.user.findMany({
       //   select: {
-      //     commentId: true,
-      //     commentText: true
+      //     userId: true,
+      //     rank: true
       //   }
       // });
+
+      // for (const user of users) {
+        // Cập nhật trường rank trong model User
+        await this.prismaService.user.update({
+          where: {
+            userId: 1,
+          },
+          data: {
+            rank: {
+              increment: 500
+            },
+          },
+        });
+      // }
 
       // const updatedComments = [];
       // for (const comment of comments) {
@@ -248,6 +250,7 @@ export class AdminService {
 
       return {
         success: true,
+        // users: users,
         // comments: comments[0].commentText.replace('\"<p>p>', '\"<p>').replace('\\\"', ''),
         // test: comments,
         // updatedComments: updatedComments,

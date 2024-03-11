@@ -24,7 +24,7 @@ export class CrawlService {
     try {
       try {
         // Crawl Data Novel
-        const dataBook = await this.crawlBook(type, bookUrl.trim());        
+        const dataBook = await this.crawlBook(type, bookUrl.trim());
 
         if(!dataBook?.success) {
           throw new Error("Error crawling book");
