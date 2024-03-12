@@ -236,41 +236,57 @@ export class BookService {
     chapterNumber: number;
   }) {
     try {
-      const keyCache = `user=${user?.userId}-bookId=${bookId}-chapterNumber=${chapterNumber}`;
-      const cacheValue = await this.cacheManager.get(keyCache);
-      if (!cacheValue) {
-        await this.cacheManager.set(
-          keyCache,
-          true,
-          15000,
-        );
-        await this.prismaService.user.update({
-          where: {
-            userId: user?.userId
-          },
-          data: {
-            rank: {
-              increment: 1
+      if(user?.userId) {
+        const keyCache = `user=${user?.userId}-bookId=${bookId}-chapterNumber=${chapterNumber}`;
+
+        const cacheValue = await this.cacheManager.get(keyCache);
+        if (!cacheValue) {
+          await this.cacheManager.set(
+            keyCache,
+            true,
+            15000,
+          );
+          await this.prismaService.user.update({
+            where: {
+              userId: user?.userId
+            },
+            data: {
+              rank: {
+                increment: 1
+              }
             }
-          }
-        })
-        await this.prismaService.userView.create({
-          data: {
-            bookId: +bookId,
-            chapterNumber: +chapterNumber,
-            userId: user ? user?.userId : null,
-          },
-        });
+          })
+          await this.prismaService.userView.create({
+            data: {
+              bookId: +bookId,
+              chapterNumber: +chapterNumber,
+              userId: user ? user?.userId : null,
+            },
+          });
+  
+          return {
+            success: true,
+            message: "Increase view successfully."
+          };
+        }
 
         return {
           success: true,
-          message: "Increase view successfully."
+          message: "You are spamming."
         };
       }
 
+      await this.prismaService.userView.create({
+        data: {
+          bookId: +bookId,
+          chapterNumber: +chapterNumber,
+          userId: user ? user?.userId : null,
+        },
+      });
+
       return {
         success: true,
-        message: "You are spamming."
+        message: "Increase view successfully."
       };
     } catch (error) {
       return {
