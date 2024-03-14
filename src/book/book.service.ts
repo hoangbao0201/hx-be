@@ -243,7 +243,7 @@ export class BookService {
         if (!cacheValue) {
           await this.cacheManager.set(
             keyCache,
-            true,
+            "ping",
             15000,
           );
           await this.prismaService.user.update({
@@ -253,16 +253,22 @@ export class BookService {
             data: {
               rank: {
                 increment: 1
+              },
+              userViews: {
+                create: {
+                  bookId: +bookId,
+                  chapterNumber: +chapterNumber,
+                }
               }
             }
           })
-          await this.prismaService.userView.create({
-            data: {
-              bookId: +bookId,
-              chapterNumber: +chapterNumber,
-              userId: user ? user?.userId : null,
-            },
-          });
+          // await this.prismaService.userView.create({
+          //   data: {
+          //     bookId: +bookId,
+          //     chapterNumber: +chapterNumber,
+          //     userId: user ? user?.userId : null,
+          //   },
+          // });
   
           return {
             success: true,

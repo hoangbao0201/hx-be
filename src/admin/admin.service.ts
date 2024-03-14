@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import draftToHtml from 'draftjs-to-html';
 
 @Injectable()
 export class AdminService {
@@ -210,46 +209,46 @@ export class AdminService {
 
   async test() {
     try {
-      // const users = await this.prismaService.user.findMany({
+      // const chapters = await this.prismaService.user.findMany({
+      //   orderBy: {
+      //     rank: "desc"
+      //   },
       //   select: {
       //     userId: true,
-      //     rank: true
-      //   }
-      // });
-
-      // for (const user of users) {
-        // Cập nhật trường rank trong model User
-        await this.prismaService.user.update({
-          where: {
-            userId: 1,
-          },
-          data: {
-            rank: {
-              increment: 500
-            },
-          },
-        });
-      // }
-
-      // const updatedComments = [];
-      // for (const comment of comments) {
-      //   const updateComment = await this.prismaService.comment.update({
-      //       where: {
-      //         commentId: comment.commentId,
-      //       },
-      //       data: {
-      //         commentText: comment?.commentText
-      //       },
+      //     name: true,
+      //     rank: true,
+      //     _count: {
       //       select: {
-      //         commentId: true,
-      //         commentText: true
+      //         userViews: true
       //       }
-      //   });
-      //   updatedComments.push(updateComment);
-      // }
+      //     }
+      //   }
+      // })
+      const users = await this.prismaService.user.findMany({
+        orderBy: {
+          userViews: {
+            _count: "desc"
+          }
+        },
+        select: {
+          userId: true,
+          rank: true,
+          _count: {
+            select: {
+              userViews: true
+            }
+          }
+        }
+      });
+      for(const user of users) {
+        user.rank = user._count.userViews;
+      }
+
+
 
       return {
         success: true,
+        users: users
         // users: users,
         // comments: comments[0].commentText.replace('\"<p>p>', '\"<p>').replace('\\\"', ''),
         // test: comments,
