@@ -51,7 +51,7 @@ export class CrawlService {
         const bookRes = await this.prismaService.book.create({
           data: {
             title: title,
-            nameImage: this.configService.get("CLOUDINARY_NAME"),
+            nameImage: cloud?.cloud.name,
             next: dataBook?.book.next,
             slug: textToSlug(title),
             anotherName: anotherName,
@@ -78,7 +78,7 @@ export class CrawlService {
         });
 
         // Update Thumbnail, Tag And Author Book
-        const updateBookRes = await this.prismaService.book.update({
+        await this.prismaService.book.update({
           where: {
             bookId: bookRes?.bookId
           },
@@ -108,16 +108,40 @@ export class CrawlService {
                   }
                 }
               }))
+            },
+            accoutsCloudBook: {
+              connectOrCreate: {
+                where: {
+                  bookId_name: {
+                    bookId: bookRes?.bookId,
+                    name: cloud?.cloud.name
+                  }
+                },
+                create: {
+                  name: cloud?.cloud.name,
+                }
+              }
             }
           }
         });
+
+        await this.prismaService.accoutCloudinary.update({
+          where: {
+            email: cloud?.cloud.email
+          },
+          data: {
+            byte: {
+              increment: dataThumbnail?.bytes
+            }
+          }
+        })
 
         return {
           success: true,
           type: type,
           book: {
             ...dataBook?.book,
-            nameImage: this.configService.get("CLOUDINARY_NAME"),
+            nameImage: cloud?.cloud.name,
             thumbnail: dataThumbnail?.image
           },
         };
@@ -149,8 +173,9 @@ export class CrawlService {
   }
 
   // Create Chapters
-  async createChapters(userId: number, { type = "lxhentai", bookUrl, take = 1 }: CrawlChapterDTO) {
+  async createChapters(userId: number, { email, type = "lxhentai", bookUrl, take = 1 }: CrawlChapterDTO) {
     try {
+
       // Get Book
       const bookRes = await this.prismaService.book.findUnique({
         where: {
@@ -177,19 +202,33 @@ export class CrawlService {
         }
       });
       if(!bookRes) {
-        throw new Error("Error crawling chapters");
+        return {
+          success: false,
+          error: "Error crawling chapters."
+        }
+      }
+
+      // Get Accout Cloud
+      const cloud = await this.getAccoutCloudinary(email);
+      if(!cloud?.success || !cloud?.cloud) {
+        return {
+          success: false,
+          error: "Accout Not Found"
+        }
       }
 
       if(bookRes?.chapters.length > 0 && !bookRes?.chapters[0].next) {
-        const dataChapter = await this.crawlChapter(type, bookRes?.chapters[1].next);
-        if(!dataChapter?.success) {
+        const dataChapter = await this.crawlChapter(type, bookRes?.chapters.length>1 ? bookRes?.chapters[1].next : bookRes?.next);
+
+        if(dataChapter?.success && !dataChapter?.next) {
           return {
             success: false,
-            error: dataChapter?.error,
-          };
+            error: "Currently at the latest chapter."
+          }
         }
         bookRes.chapters[0].next = dataChapter?.next
       }
+
 
       let chapterRes = null;
       if(bookRes?._count.chapters > 0) {
@@ -200,13 +239,14 @@ export class CrawlService {
           chapterUrl: bookRes?.chapters[0].next,
           start: bookRes?._count.chapters,
           take: +take,
+          cloud: cloud?.cloud
         });
-
+        
         if(!chapterRes?.success) {
           return {
             success: false,
-            error: chapterRes?.error,
-          };
+            error: "Crawl error."
+          }
         }
       }
       else {
@@ -217,13 +257,14 @@ export class CrawlService {
           chapterUrl: bookRes?.next,
           start: bookRes?._count.chapters,
           take: +take,
+          cloud: cloud?.cloud
         });
 
         if(!chapterRes?.success) {
           return {
             success: false,
-            error: chapterRes?.error,
-          };
+            error: "Crawl error."
+          }
         }
       }
 
@@ -253,17 +294,26 @@ export class CrawlService {
     chapterUrl,
     start,
     take,
+    cloud
   }: {
     type: "lxhentai" | "hentaivn"
     bookId: number;
     chapterUrl: string;
     start: number;
     take: number;
+    cloud: {
+      email: string,
+      name: string,
+      key: string,
+      secret: string,
+      byte: number
+    }
   }) {
     const n = start + take;
     let i = start + 1;
     let listChapter = [];
     let urlQuery = chapterUrl;
+    let bytes = 0;
     try {
       while (i <= n) {
         const dataChapter = await this.crawlChapter(type, urlQuery);
@@ -281,12 +331,16 @@ export class CrawlService {
         const baseUrl = new URL(urlQuery).origin
         const imagesChapter =
           await this.cloudinaryService.uploadImagesChapterByUrl({
+            cloud: {
+              name: cloud?.name,
+              key: cloud?.key,
+              secret: cloud?.secret,
+            },
             baseUrl: baseUrl,
             folder: `/${bookId}/chapters/${i}`,
             listUrl: dataChapter?.chapter.content,
           });
         
-        console.log(imagesChapter);
         if(!imagesChapter?.success || imagesChapter?.images.length === 0) {
           this.cloudinaryService.deleteFolder({ folderId: `/${bookId}/chapters/${i}` });
           return {
@@ -301,9 +355,10 @@ export class CrawlService {
           chapterNumber: i,
           next: dataChapter?.next,
           title: dataChapter?.chapter.title,
-          nameImage: this.configService.get("CLOUDINARY_NAME"),
+          nameImage: cloud?.name,
           content: JSON.stringify(imagesChapter?.images),
         });
+        bytes += imagesChapter?.bytes;
 
         if (listChapter?.length >= 2 || n === i) {
           // Create Chapter Book
@@ -313,8 +368,19 @@ export class CrawlService {
           if (!chapterRes) {
             throw new Error(`Error creating chapters`);
           }
+          await this.prismaService.accoutCloudinary.update({
+            where: {
+              email: cloud?.email
+            },
+            data: {
+              byte: {
+                increment: bytes
+              }
+            }
+          });
           console.log("Get chapter " + i + " successfully");
           listChapter = [];
+          bytes = 0;
         }
 
         // If the next chapter doesn't exist
@@ -343,6 +409,16 @@ export class CrawlService {
           if (!chapterRes) {
             throw new Error('Error creating remaining chapters');
           }
+          await this.prismaService.accoutCloudinary.update({
+            where: {
+              email: cloud?.email
+            },
+            data: {
+              byte: {
+                increment: bytes
+              }
+            }
+          });
           return {
             success: true,
             message: "Create chapters successfully",
@@ -492,6 +568,13 @@ export class CrawlService {
       const cloud = await this.prismaService.accoutCloudinary.findUnique({
         where: {
           email: email
+        },
+        select: {
+          email: true,
+          name: true,
+          key: true,
+          secret: true,
+          byte: true
         }
       });
 

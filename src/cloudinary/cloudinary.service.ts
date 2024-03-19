@@ -46,6 +46,7 @@ export class CloudinaryService {
         api_secret: secret,
       });
 
+      let bytes = 0;
       const result = await new Promise<string>((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
@@ -62,7 +63,8 @@ export class CloudinaryService {
             if (error) {
               reject({ success: false, error });
             } else {
-              resolve(result?.secure_url.replace(`https://res.cloudinary.com/${this.configService.get("CLOUDINARY_NAME")}/image/upload/`, ""));
+              bytes = result?.bytes;
+              resolve(result?.secure_url.replace(`https://res.cloudinary.com/${name}/image/upload/`, ""));
             }
           },
         );
@@ -76,6 +78,7 @@ export class CloudinaryService {
 
       return {
         success: true,
+        bytes: bytes,
         image: result,
       };
     } catch (error) {
@@ -83,12 +86,19 @@ export class CloudinaryService {
     }
   }
 
-  async uploadImagesChapterByUrl(data: { baseUrl: string, folder: string, listUrl: string[]; width?: number; height?: number; }) {
-    const { baseUrl = "", folder = "", listUrl = [] } = data;
+  async uploadImagesChapterByUrl(data: { cloud: { name: string, key: string, secret: string }, baseUrl: string, folder: string, listUrl: string[]; width?: number; height?: number; }) {
+    const { cloud, baseUrl = "", folder = "", listUrl = [] } = data;
     let results = [];
 
-    // const { width = 2000, height = 2000 } = data;
+    // Khởi tạo Cloudinary với thông tin cấu hình từ ConfigService
+    cloudinary.config({
+      cloud_name: cloud?.name,
+      api_key: cloud?.key,
+      api_secret: cloud?.secret,
+    });
+
     try {
+        let bytes = 0;
         for (let i = 0; i < listUrl.length; i += 15) {
             const chunkUrls = listUrl.slice(i, i + 15);
             const uploadPromises = chunkUrls.map(async (url) => {
@@ -119,7 +129,8 @@ export class CloudinaryService {
                             if (error) {
                                 reject({ success: false, error });
                             } else {
-                                resolve(result?.secure_url.replace(`https://res.cloudinary.com/${this.configService.get("CLOUDINARY_NAME")}/image/upload/`, ""));
+                                bytes += result?.bytes;
+                                resolve(result?.secure_url.replace(`https://res.cloudinary.com/${cloud?.name}/image/upload/`, ""));
                             }
                         },
                     );
@@ -135,8 +146,10 @@ export class CloudinaryService {
             results.push(...chunkResults);
         }
 
+        console.log("bytes: ", bytes)
         return {
             success: true,
+            bytes: bytes,
             images: results,
         };
     } catch (error) {

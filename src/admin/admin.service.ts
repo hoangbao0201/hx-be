@@ -1,7 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import axios from 'axios';
-import userAgent from 'random-useragent';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 
@@ -606,13 +604,42 @@ export class AdminService {
 
   async test(page: number) {
     try {
-      const accouts = await this.prismaService.accoutCloudinary.findMany({
-      });
+      // const books = await this.prismaService.book.findMany({
+      //   take: 4,
+      //   orderBy: {
+      //     updatedAt: 'desc'
+      //   }
+      // });
 
+      // let i = 1;
+      // for(const book of books) {
+      //   const updateBooks = await this.prismaService.book.update({
+      //     where: {
+      //       bookId: book.bookId
+      //     },
+      //     data: {
+      //       updatedAt: book?.createdAt
+      //     }
+      //   })
+
+      //   console.log("Update bookId: " + book?.bookId + " - STT: " + i);
+      //   await this.wait(1000);
+      //   i++;
+      // }
+
+      const book = await this.prismaService.chapter.updateMany({
+        where: {
+          bookId: 406
+        },
+        data: {
+          nameImage: "dmz5itizb"
+        }
+      })
+
+      console.log("END =====================")
       return {
         success: true,
-        accouts: accouts
-        // imageNames: imageNames
+        // books: books
       }
     } catch (error) {
       return {

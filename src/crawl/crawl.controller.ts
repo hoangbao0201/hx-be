@@ -27,10 +27,12 @@ export class CrawlController {
     @Request() req,
     @Body('type') type: "lxhentai" | "hentaivn",
     @Body('take') take: number,
+    @Body('email') email: string,
     @Body('bookUrl') bookUrl: string,
   ) {
     return this.crawlService.createChapters(req.user.userId, {
       type: type,
+      email: email,
       take: +take || 1,
       bookUrl: bookUrl,
     });
