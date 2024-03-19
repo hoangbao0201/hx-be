@@ -19,10 +19,19 @@ export class CrawlService {
   ) {}
 
   // Create Novel
-  async createBook(userId: number, { type, bookUrl }: CrawlBookDTO) {
+  async createBook(userId: number, { type, bookUrl, email }: CrawlBookDTO) {
 
     try {
       try {
+        // Get Accout Cloud
+        const cloud = await this.getAccoutCloudinary(email);
+        if(!cloud?.success || !cloud?.cloud) {
+          return {
+            success: false,
+            error: "Accout Not Found"
+          }
+        }
+
         // Crawl Data Novel
         const dataBook = await this.crawlBook(type, bookUrl.trim());
 
@@ -33,7 +42,8 @@ export class CrawlService {
         // return {
         //   success: false,
         //   bookUrl: bookUrl,
-        //   dataBook: dataBook
+        //   dataBook: dataBook,
+        //   cloud: cloud
         // }
 
         // Create Book
@@ -55,12 +65,16 @@ export class CrawlService {
             },
           },
         });
+
         // Upload Thumbnail Novel
         const dataThumbnail = await this.cloudinaryService.uploadImageBookByUrl({
           url: thumbnail,
           folder: `/${bookRes?.bookId}`,
           width: 1000,
           height: 1000,
+          name: cloud?.cloud.name,
+          key: cloud?.cloud.key,
+          secret: cloud?.cloud.secret,
         });
 
         // Update Thumbnail, Tag And Author Book
@@ -472,5 +486,26 @@ export class CrawlService {
       };
     }
   }
+
+  async getAccoutCloudinary(email: string) {
+    try {
+      const cloud = await this.prismaService.accoutCloudinary.findUnique({
+        where: {
+          email: email
+        }
+      });
+
+      return {
+        success: true,
+        cloud: cloud
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error
+      }
+    }
+  }
+
 
 }

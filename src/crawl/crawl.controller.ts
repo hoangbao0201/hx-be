@@ -12,10 +12,12 @@ export class CrawlController {
     @Request() req,
     @Body('type') type: "lxhentai" | "hentaivn",
     @Body('bookUrl') bookUrl: string,
+    @Body('email') email: string,
   ) {
     return this.crawlService.createBook(req.user.userId, {
       type: type,
       bookUrl: bookUrl,
+      email: email,
     });
   }
 

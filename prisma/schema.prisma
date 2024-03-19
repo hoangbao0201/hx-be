@@ -59,11 +59,12 @@ model Book {
   authorId   Int?
   author     Author? @relation(fields: [authorId], references: [authorId], onDelete: Cascade)
 
-  tags        BookTag[]
-  chapters    Chapter[]
-  userViews   UserView[]
-  comments    Comment[]
-  usersFollow UserBookFollowModel[]
+  tags             BookTag[]
+  chapters         Chapter[]
+  userViews        UserView[]
+  comments         Comment[]
+  usersFollow      UserBookFollowModel[]
+  accoutsCloudBook AccoutCloudBook[]
 
   @@index([bookId])
 }
@@ -156,4 +157,27 @@ model Comment {
   parent   Comment? @relation(name: "ParentComment", fields: [parentId], references: [commentId], onDelete: Cascade)
 
   replyComments Comment[] @relation(name: "ParentComment")
+}
+
+model AccoutCloudBook {
+  bookId Int
+  name   String
+
+  book        Book             @relation(fields: [bookId], references: [bookId], onDelete: Cascade)
+  accoutCloud AccoutCloudinary @relation(fields: [name], references: [name], onDelete: Cascade)
+
+  @@id([bookId, name])
+}
+
+model AccoutCloudinary {
+  name      String            @unique
+  email     String            @unique
+  key       String            @unique
+  secret    String            @unique
+  byte      Int               @default(0)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  books     AccoutCloudBook[]
+
+  @@id([name])
 }

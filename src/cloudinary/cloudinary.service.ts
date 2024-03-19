@@ -29,11 +29,21 @@ export class CloudinaryService {
     folder: string;
     width?: number;
     height?: number;
+    name: string,
+    key: string,
+    secret: string
   }) {
-    const { url, folder = '', height = 1000, width = 1000 } = data;
+    const { url, folder = '', height = 1000, width = 1000, name, key, secret } = data;
     try {
       const { data: imageBuffer } = await axios.get(url, {
         responseType: 'arraybuffer',
+      });
+
+      // Khởi tạo Cloudinary với thông tin cấu hình từ ConfigService
+      cloudinary.config({
+        cloud_name: name,
+        api_key: key,
+        api_secret: secret,
       });
 
       const result = await new Promise<string>((resolve, reject) => {
@@ -163,4 +173,99 @@ export class CloudinaryService {
       return { success: false, error };
     }
   }
+
+  async changeCloudChapters({ oldNameImage, content, name, key, secret }: { oldNameImage: string, content: string[], name: string, key: string, secret: string }) {
+    try {
+      cloudinary.config({
+        cloud_name: name,
+        api_key: key,
+        api_secret: secret,
+      });
+      
+      const results = [];
+      let bytes = 0;
+      for (let i = 0; i < content?.length; i += 30) {
+        const chunkUrls = content.slice(i, i + 30);
+        const uploadPromises: Promise<UploadApiResponse>[] = [];
+
+        chunkUrls.map(async (url) => {
+          const cvFolderImage = url?.match(/\/(.+)$/)?.[1].split(".")[0] || "";
+          console.log(cvFolderImage)
+          const upload = cloudinary.uploader.upload(`https://res.cloudinary.com/${oldNameImage}/image/upload/${url}`, { public_id: cvFolderImage });
+          uploadPromises.push(upload);
+        });
+
+        const chunkResults = await Promise.all(uploadPromises);
+
+        for (const upload of chunkResults) {
+          if (!upload) {
+            throw new Error("Change cloud error");
+          }
+          bytes = bytes + upload?.bytes;
+          results.push(upload.secure_url?.split("/image/upload/")[1]);
+        }
+      }
+
+      return {
+        success: true,
+        bytes: bytes,
+        images: results
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error
+      };
+    }
+  }
+
+  async changeCloudBook({ bookId, oldImage, name, key, secret }: { bookId: number, oldImage: string, name: string, key: string, secret: string }) {
+    try {
+      cloudinary.config({
+        cloud_name: name,
+        api_key: key,
+        api_secret: secret,
+      });
+            
+      const upload_result = await cloudinary.uploader.upload(oldImage, { folder: `HX/books/${bookId}`}); 
+      if(!upload_result) {
+        throw new Error("Change cloud error");
+      }
+
+      return {
+        success: true,
+        bytes: upload_result?.bytes,
+        urlImage: upload_result?.secure_url?.split("/image/upload/")[1]
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error
+      };
+    }
+  }
 }
+
+
+// {
+//   asset_id: '38c7d5dc795c981c173a493e28ad6c1b',
+//   public_id: 'HX/books/279/yanzqmyfeg8bqsycyn98',
+//   version: 1710700698,
+//   version_id: '604c1bd5a1fdf2673a274b9da50b371a',
+//   signature: '8e2eac2bbeaafa87e34b27bc5334adf20eac5d2a',
+//   width: 500,
+//   height: 662,
+//   format: 'jpg',
+//   resource_type: 'image',
+//   created_at: '2024-03-17T18:38:18Z',
+//   tags: [],
+//   bytes: 75140,
+//   type: 'upload',
+//   etag: '88ad6c7b15c9f5cf46976a8f688533dd',
+//   placeholder: false,
+//   url: 'http://res.cloudinary.com/djlg4zd3i/image/upload/v1710700698/HX/books/279/yanzqmyfeg8bqsycyn98.jpg',       
+//   secure_url: 'https://res.cloudinary.com/djlg4zd3i/image/upload/v1710700698/HX/books/279/yanzqmyfeg8bqsycyn98.jpg',
+//   folder: 'HX/books/279',
+//   original_filename: 'mytcqcripqmsfmwcrdmw',
+//   api_key: '624958517373894'
+// }
