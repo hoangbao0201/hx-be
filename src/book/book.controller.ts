@@ -11,7 +11,7 @@ export class BookController {
   @Get()
   findAll(
     @Query('q') q?: string,
-    @Query('byu') byu?: string,
+    @Query('author') author?: string,
     @Query('genres') genres?: string,
     @Query('notgenres') notgenres?: string,
     @Query('take') take?: number,
@@ -19,7 +19,7 @@ export class BookController {
     @Query('otherId') otherId?: number,
     @Query('sort') sort?: 'desc' | 'asc',
   ) {
-    return this.bookService.findAll({ q, byu, genres, notgenres, take: take, skip: skip, sort, otherId });
+    return this.bookService.findAll({ q, author, genres, notgenres, take: take, skip: skip, sort, otherId });
   }
 
   // Get Books Seo

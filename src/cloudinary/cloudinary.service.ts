@@ -116,7 +116,7 @@ export class CloudinaryService {
                 return new Promise<string>((resolve, reject) => {
                     const uploadStream = cloudinary.uploader.upload_stream(
                         {
-                            folder: `HX/books${folder}`,
+                            folder: folder,
                             transformation: [
                                 // {
                                 //     width: +width,

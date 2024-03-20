@@ -604,12 +604,26 @@ export class AdminService {
 
   async test(page: number) {
     try {
-      // const books = await this.prismaService.book.findMany({
-      //   take: 4,
-      //   orderBy: {
-      //     updatedAt: 'desc'
-      //   }
-      // });
+      const books = await this.prismaService.accoutCloudinary.update({
+        where: {
+          name: "domksjrw8"
+        },
+        data: {
+          books: {
+            connectOrCreate: {
+              where: {
+                bookId_name: {
+                  bookId: 419,
+                  name: "domksjrw8"
+                }
+              },
+              create: {
+                bookId: 419
+              }
+            }
+          },
+        }
+      });
 
       // let i = 1;
       // for(const book of books) {
@@ -627,14 +641,14 @@ export class AdminService {
       //   i++;
       // }
 
-      const book = await this.prismaService.chapter.updateMany({
-        where: {
-          bookId: 406
-        },
-        data: {
-          nameImage: "dmz5itizb"
-        }
-      })
+      // const book = await this.prismaService.book.update({
+      //   where: {
+      //     bookId: 412
+      //   },
+      //   data: {
+      //     nameImage: "dmz5itizb"
+      //   }
+      // })
 
       console.log("END =====================")
       return {

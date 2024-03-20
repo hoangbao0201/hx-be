@@ -229,50 +229,22 @@ export class CrawlService {
         bookRes.chapters[0].next = dataChapter?.next
       }
 
-
       let chapterRes = null;
-      if(bookRes?._count.chapters > 0) {
-        // Create Multiple Chapter
-        chapterRes =  await this.createMultipleChaptersBook({
-          type: type,
-          bookId: bookRes?.bookId,
-          chapterUrl: bookRes?.chapters[0].next,
-          start: bookRes?._count.chapters,
-          take: +take,
-          cloud: cloud?.cloud
-        });
-        
-        if(!chapterRes?.success) {
-          return {
-            success: false,
-            error: "Crawl error."
-          }
-        }
-      }
-      else {
-        // Create Multiple Chapter
-        chapterRes =  await this.createMultipleChaptersBook({
-          type: type,
-          bookId: bookRes?.bookId,
-          chapterUrl: bookRes?.next,
-          start: bookRes?._count.chapters,
-          take: +take,
-          cloud: cloud?.cloud
-        });
-
-        if(!chapterRes?.success) {
-          return {
-            success: false,
-            error: "Crawl error."
-          }
-        }
-      }
-
-      // Update the corresponding book's updatedAt field
-       await this.prismaService.book.update({
-        where: { bookId: bookRes?.bookId },
-        data: { updatedAt: new Date() },
+      // Create Multiple Chapter
+      chapterRes =  await this.createMultipleChaptersBook({
+        type: type,
+        bookId: bookRes?.bookId,
+        chapterUrl: bookRes?._count.chapters > 0 ? bookRes?.chapters[0].next : bookRes?.next,
+        start: bookRes?._count.chapters,
+        take: +take,
+        cloud: cloud?.cloud
       });
+      if(!chapterRes?.success) {
+        return {
+          success: false,
+          error: "Crawl error."
+        }
+      }
 
       return {
         success: true,
@@ -309,15 +281,13 @@ export class CrawlService {
       byte: number
     }
   }) {
-    const n = start + take;
-    let i = start + 1;
+    let bytes = 0;
     let listChapter = [];
     let urlQuery = chapterUrl;
-    let bytes = 0;
+
     try {
-      while (i <= n) {
+      for(let i = start + 1; i <= start + take; i++) {
         const dataChapter = await this.crawlChapter(type, urlQuery);
-        
         if (!dataChapter?.success) {
           throw new Error(`Error crawling chapter ${i}: ${dataChapter?.error}`);
         }
@@ -328,7 +298,7 @@ export class CrawlService {
         //   dataChapter
         // };
         
-        const baseUrl = new URL(urlQuery).origin
+        const baseUrl = new URL(urlQuery).origin;
         const imagesChapter =
           await this.cloudinaryService.uploadImagesChapterByUrl({
             cloud: {
@@ -337,63 +307,58 @@ export class CrawlService {
               secret: cloud?.secret,
             },
             baseUrl: baseUrl,
-            folder: `/${bookId}/chapters/${i}`,
+            folder: `HX/books/${bookId}/chapters/${i}`,
             listUrl: dataChapter?.chapter.content,
           });
         
         if(!imagesChapter?.success || imagesChapter?.images.length === 0) {
-          this.cloudinaryService.deleteFolder({ folderId: `/${bookId}/chapters/${i}` });
-          return {
-            success: false,
-            message: "Failed to create images",
-            error: JSON.stringify(imagesChapter?.error)
-          }
+          this.cloudinaryService.deleteFolder({ folderId: `HX/books/${bookId}/chapters/${i}` });
+          throw new Error(`Failed to create images for chapter ${i}: ${imagesChapter?.error}`);
         }
 
         listChapter.push({
           bookId: bookId,
           chapterNumber: i,
+          nameImage: cloud?.name,
           next: dataChapter?.next,
           title: dataChapter?.chapter.title,
-          nameImage: cloud?.name,
           content: JSON.stringify(imagesChapter?.images),
         });
         bytes += imagesChapter?.bytes;
 
-        if (listChapter?.length >= 2 || n === i) {
-          // Create Chapter Book
-          const chapterRes = await this.prismaService.chapter.createMany({
-            data: listChapter?.map((chapter) => chapter),
-          });
-          if (!chapterRes) {
-            throw new Error(`Error creating chapters`);
-          }
-          await this.prismaService.accoutCloudinary.update({
-            where: {
-              email: cloud?.email
-            },
-            data: {
-              byte: {
-                increment: bytes
-              }
-            }
-          });
-          console.log("Get chapter " + i + " successfully");
-          listChapter = [];
-          bytes = 0;
-        }
-
         // If the next chapter doesn't exist
         if (!dataChapter?.next) {
-          if(listChapter?.length > 0) {
-            throw new Error(`Error crawling chapter ${i}: ${dataChapter?.error}`);
-          }
           break;
         }
 
         urlQuery = dataChapter?.next
-        i++;
       }
+
+      // Create Chapter Book
+      const chapterRes = await this.prismaService.chapter.createMany({
+        data: listChapter?.map((chapter) => chapter),
+      });
+      if(!chapterRes) {
+        throw new Error(`Error creating chapters`);
+      }
+
+      // Update Bytes Accout
+      await this.prismaService.accoutCloudinary.update({
+        where: {
+          email: cloud?.email
+        },
+        data: {
+          byte: {
+            increment: bytes
+          }
+        }
+      });
+
+      // Update updatedAt of Book
+      await this.prismaService.book.update({
+        where: { bookId: bookId },
+        data: { updatedAt: new Date() },
+      });
 
       return {
         success: true,
@@ -405,10 +370,10 @@ export class CrawlService {
           const chapterRes = await this.prismaService.chapter.createMany({
             data: listChapter?.map((chapter) => chapter),
           });
-
           if (!chapterRes) {
             throw new Error('Error creating remaining chapters');
           }
+          
           await this.prismaService.accoutCloudinary.update({
             where: {
               email: cloud?.email
@@ -418,6 +383,11 @@ export class CrawlService {
                 increment: bytes
               }
             }
+          });
+          // Update updatedAt of Book
+          await this.prismaService.book.update({
+            where: { bookId: bookId },
+            data: { updatedAt: new Date() },
           });
           return {
             success: true,

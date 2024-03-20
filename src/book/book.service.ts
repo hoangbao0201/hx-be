@@ -13,7 +13,7 @@ export class BookService {
 
   async findAll(options: {
     q?: string;
-    byu?: string;
+    author?: string;
     genres?: string;
     notgenres?: string;
     take?: number;
@@ -23,7 +23,7 @@ export class BookService {
   }) {
     const {
       q = '',
-      byu = '',
+      author = '',
       genres,
       notgenres,
       take = 24,
@@ -32,7 +32,7 @@ export class BookService {
       otherId,
     } = options;
 
-    const cvQuery = `/api/books?genres=${genres}&notgenres=${notgenres || ''}&q=${q || ''}&take=${take || ''}&skip=${skip || ''}&sort=${sort || ''}`;
+    const cvQuery = `/api/books?genres=${genres}&notgenres=${notgenres || ''}&q=${q || ''}&take=${take || ''}&skip=${skip || ''}&sort=${sort || ''}&author=${author || ''}`;
     const cacheValue: any = await this.cacheManager.get(cvQuery);
     if (cacheValue) {
       return {
@@ -81,6 +81,14 @@ export class BookService {
             contains: q,
           },
         };
+      }
+      if(author) {
+        where = {
+          ...where,
+          author: {
+            name: author
+          }
+        }
       }
       const books = await this.prismaService.book.findMany({
         skip: +skip,
