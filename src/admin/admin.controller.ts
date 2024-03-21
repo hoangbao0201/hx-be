@@ -20,33 +20,33 @@ export class AdminController {
     return this.adminService.findAllBooks(req.user, { take: take, skip: skip, sort });
   }
 
-  @UseGuards(JwtGuard)
-  @Get('/accout/cloud')
-  findAllAccoutCloud(
-    @Request() req,
-    @Query('take') take?: number,
-    @Query('skip') skip?: number,
-    @Query('sort') sort?: 'desc' | 'asc',
-  ) {
-    return this.adminService.findAllAccoutCloud(req.user, { take: take, skip: skip, sort });
-  }
+  // @UseGuards(JwtGuard)
+  // @Get('/accout/cloud')
+  // findAllAccoutCloud(
+  //   @Request() req,
+  //   @Query('take') take?: number,
+  //   @Query('skip') skip?: number,
+  //   @Query('sort') sort?: 'desc' | 'asc',
+  // ) {
+  //   return this.adminService.findAllAccoutCloud(req.user, { take: take, skip: skip, sort });
+  // }
 
-  @UseGuards(JwtGuard)
-  @Post('/accout/cloud')
-  createAccoutCloud(
-    @Request() req,
-    @Body() body: { name: string, key: string, secret: string, email: string }
-  ) {
-    return this.adminService.createAccoutCloud(req.user, body);
-  }
+  // @UseGuards(JwtGuard)
+  // @Post('/accout/cloud')
+  // createAccoutCloud(
+  //   @Request() req,
+  //   @Body() body: { name: string, key: string, secret: string, email: string }
+  // ) {
+  //   return this.adminService.createAccoutCloud(req.user, body);
+  // }
 
-  @UseGuards(JwtGuard)
-  @Delete('/accout/cloud/:name')
-  deleteCloud(
-    @Param('name') name: string,
-  ) {
-    return this.adminService.deleteCloud(name);
-  }
+  // @UseGuards(JwtGuard)
+  // @Delete('/accout/cloud/:name')
+  // deleteCloud(
+  //   @Param('name') name: string,
+  // ) {
+  //   return this.adminService.deleteCloud(name);
+  // }
 
   @UseGuards(JwtGuard)
   @Post('/books')
@@ -82,37 +82,37 @@ export class AdminController {
     return this.adminService.getUsers(req.user);
   }
 
-  @UseGuards(JwtGuard)
-  @Post('/change/cloud/book')
-  changeCloudBook(
-    @Body('type') type: "lxhentai" | "hentaivn",
-    @Body('bookId') bookId: string,
-    @Body('email') email: string,
-  ) {
-    return this.adminService.changeCloudBook({
-      bookId: bookId,
-      email: email,
-    });
-  }
+  // @UseGuards(JwtGuard)
+  // @Post('/change/cloud/book')
+  // changeCloudBook(
+  //   @Body('type') type: "lxhentai" | "hentaivn",
+  //   @Body('bookId') bookId: string,
+  //   @Body('email') email: string,
+  // ) {
+  //   return this.adminService.changeCloudBook({
+  //     bookId: bookId,
+  //     email: email,
+  //   });
+  // }
 
-  @UseGuards(JwtGuard)
-  @Post('/change/cloud/chapters')
-  changeCloudChapters(
-    @Body('take') take: string,
-    @Body('bookId') bookId: string,
-    @Body('email') email: string,
-  ) {
-    return this.adminService.changeCloudChapters({
-      take: take,
-      bookId: bookId,
-      email: email,
-    });
-  }
+  // @UseGuards(JwtGuard)
+  // @Post('/change/cloud/chapters')
+  // changeCloudChapters(
+  //   @Body('take') take: string,
+  //   @Body('bookId') bookId: string,
+  //   @Body('email') email: string,
+  // ) {
+  //   return this.adminService.changeCloudChapters({
+  //     take: take,
+  //     bookId: bookId,
+  //     email: email,
+  //   });
+  // }
 
   @Get('/test')
   async test(
-    @Query('page') page?: number,
+    @Query('bookId') bookId?: number,
   ) {
-    return this.adminService.test(page || 1);
+    return this.adminService.test(bookId || 1);
   }
 }

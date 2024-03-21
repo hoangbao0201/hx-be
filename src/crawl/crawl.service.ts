@@ -19,393 +19,393 @@ export class CrawlService {
   ) {}
 
   // Create Novel
-  async createBook(userId: number, { type, bookUrl, email }: CrawlBookDTO) {
+  // async createBook(userId: number, { type, bookUrl, email }: CrawlBookDTO) {
 
-    try {
-      try {
-        // Get Accout Cloud
-        const cloud = await this.getAccoutCloudinary(email);
-        if(!cloud?.success || !cloud?.cloud) {
-          return {
-            success: false,
-            error: "Accout Not Found"
-          }
-        }
+  //   try {
+  //     try {
+  //       // Get Accout Cloud
+  //       const cloud = await this.getAccoutCloudinary(email);
+  //       if(!cloud?.success || !cloud?.cloud) {
+  //         return {
+  //           success: false,
+  //           error: "Accout Not Found"
+  //         }
+  //       }
 
-        // Crawl Data Novel
-        const dataBook = await this.crawlBook(type, bookUrl.trim());
+  //       // Crawl Data Novel
+  //       const dataBook = await this.crawlBook(type, bookUrl.trim());
 
-        if(!dataBook?.success) {
-          throw new Error("Error crawling book");
-        }
+  //       if(!dataBook?.success) {
+  //         throw new Error("Error crawling book");
+  //       }
 
-        // return {
-        //   success: false,
-        //   bookUrl: bookUrl,
-        //   dataBook: dataBook,
-        //   cloud: cloud
-        // }
+  //       // return {
+  //       //   success: false,
+  //       //   bookUrl: bookUrl,
+  //       //   dataBook: dataBook,
+  //       //   cloud: cloud
+  //       // }
 
-        // Create Book
-        const { title, anotherName, author, description, status, tags, thumbnail, next } = dataBook?.book;
-        const bookRes = await this.prismaService.book.create({
-          data: {
-            title: title,
-            nameImage: cloud?.cloud.name,
-            next: dataBook?.book.next,
-            slug: textToSlug(title),
-            anotherName: anotherName,
-            description: description,
-            status: status,
-            scrapedUrl: bookUrl,
-            postedBy: {
-              connect: {
-                userId: userId
-              }
-            },
-          },
-        });
+  //       // Create Book
+  //       const { title, anotherName, author, description, status, tags, thumbnail, next } = dataBook?.book;
+  //       const bookRes = await this.prismaService.book.create({
+  //         data: {
+  //           title: title,
+  //           nameImage: cloud?.cloud.name,
+  //           next: dataBook?.book.next,
+  //           slug: textToSlug(title),
+  //           anotherName: anotherName,
+  //           description: description,
+  //           status: status,
+  //           scrapedUrl: bookUrl,
+  //           postedBy: {
+  //             connect: {
+  //               userId: userId
+  //             }
+  //           },
+  //         },
+  //       });
 
-        // Upload Thumbnail Novel
-        const dataThumbnail = await this.cloudinaryService.uploadImageBookByUrl({
-          url: thumbnail,
-          folder: `/${bookRes?.bookId}`,
-          width: 1000,
-          height: 1000,
-          name: cloud?.cloud.name,
-          key: cloud?.cloud.key,
-          secret: cloud?.cloud.secret,
-        });
+  //       // Upload Thumbnail Novel
+  //       const dataThumbnail = await this.cloudinaryService.uploadImageBookByUrl({
+  //         url: thumbnail,
+  //         folder: `/${bookRes?.bookId}`,
+  //         width: 1000,
+  //         height: 1000,
+  //         name: cloud?.cloud.name,
+  //         key: cloud?.cloud.key,
+  //         secret: cloud?.cloud.secret,
+  //       });
 
-        // Update Thumbnail, Tag And Author Book
-        await this.prismaService.book.update({
-          where: {
-            bookId: bookRes?.bookId
-          },
-          data: {
-            thumbnail: dataThumbnail?.image,
-            author: {
-              connectOrCreate: {
-                where: {
-                  name: author
-                },
-                create: {
-                  name: author
-                }
-              }
-            },
-            tags: {
-              deleteMany: {},
-              create: tags?.map((tag) => ({
-                tag: {
-                  connectOrCreate: {
-                    where: {
-                      tagId: tag,
-                    },
-                    create: {
-                      tagId: tag
-                    }
-                  }
-                }
-              }))
-            },
-            accoutsCloudBook: {
-              connectOrCreate: {
-                where: {
-                  bookId_name: {
-                    bookId: bookRes?.bookId,
-                    name: cloud?.cloud.name
-                  }
-                },
-                create: {
-                  name: cloud?.cloud.name,
-                }
-              }
-            }
-          }
-        });
+  //       // Update Thumbnail, Tag And Author Book
+  //       await this.prismaService.book.update({
+  //         where: {
+  //           bookId: bookRes?.bookId
+  //         },
+  //         data: {
+  //           thumbnail: dataThumbnail?.image,
+  //           author: {
+  //             connectOrCreate: {
+  //               where: {
+  //                 name: author
+  //               },
+  //               create: {
+  //                 name: author
+  //               }
+  //             }
+  //           },
+  //           tags: {
+  //             deleteMany: {},
+  //             create: tags?.map((tag) => ({
+  //               tag: {
+  //                 connectOrCreate: {
+  //                   where: {
+  //                     tagId: tag,
+  //                   },
+  //                   create: {
+  //                     tagId: tag
+  //                   }
+  //                 }
+  //               }
+  //             }))
+  //           },
+  //           accoutsCloudBook: {
+  //             connectOrCreate: {
+  //               where: {
+  //                 bookId_name: {
+  //                   bookId: bookRes?.bookId,
+  //                   name: cloud?.cloud.name
+  //                 }
+  //               },
+  //               create: {
+  //                 name: cloud?.cloud.name,
+  //               }
+  //             }
+  //           }
+  //         }
+  //       });
 
-        await this.prismaService.accoutCloudinary.update({
-          where: {
-            email: cloud?.cloud.email
-          },
-          data: {
-            byte: {
-              increment: dataThumbnail?.bytes
-            }
-          }
-        })
+  //       await this.prismaService.accoutCloudinary.update({
+  //         where: {
+  //           email: cloud?.cloud.email
+  //         },
+  //         data: {
+  //           byte: {
+  //             increment: dataThumbnail?.bytes
+  //           }
+  //         }
+  //       })
 
-        return {
-          success: true,
-          type: type,
-          book: {
-            ...dataBook?.book,
-            nameImage: cloud?.cloud.name,
-            thumbnail: dataThumbnail?.image
-          },
-        };
-      }
-      catch (error) {
-        if (error.code === 'P2002') {
-          const book = await this.prismaService.book.findUnique({
-            where: {
-              scrapedUrl: bookUrl,
-            }
-          })
-          return {
-              success: true,
-              exist: true,
-              book: book
-          };
-        }
-        return {
-            success: false,
-            message: 'Error create book',
-        };
-      }
-    } catch (error) {
-      return {
-        success: false,
-        error: error,
-      };
-    }
-  }
+  //       return {
+  //         success: true,
+  //         type: type,
+  //         book: {
+  //           ...dataBook?.book,
+  //           nameImage: cloud?.cloud.name,
+  //           thumbnail: dataThumbnail?.image
+  //         },
+  //       };
+  //     }
+  //     catch (error) {
+  //       if (error.code === 'P2002') {
+  //         const book = await this.prismaService.book.findUnique({
+  //           where: {
+  //             scrapedUrl: bookUrl,
+  //           }
+  //         })
+  //         return {
+  //             success: true,
+  //             exist: true,
+  //             book: book
+  //         };
+  //       }
+  //       return {
+  //           success: false,
+  //           message: 'Error create book',
+  //       };
+  //     }
+  //   } catch (error) {
+  //     return {
+  //       success: false,
+  //       error: error,
+  //     };
+  //   }
+  // }
 
   // Create Chapters
-  async createChapters(userId: number, { email, type = "lxhentai", bookUrl, take = 1 }: CrawlChapterDTO) {
-    try {
+  // async createChapters(userId: number, { email, type = "lxhentai", bookUrl, take = 1 }: CrawlChapterDTO) {
+  //   try {
 
-      // Get Book
-      const bookRes = await this.prismaService.book.findUnique({
-        where: {
-          scrapedUrl: bookUrl.trim()
-        },
-        select: {
-          bookId: true,
-          next: true,
-          chapters: {
-            take: 2,
-            orderBy: {
-              chapterNumber: "desc"
-            },
-            select: {
-              next: true,
-              chapterNumber: true
-            }
-          },
-          _count: {
-            select: {
-              chapters: true
-            }
-          }
-        }
-      });
-      if(!bookRes) {
-        return {
-          success: false,
-          error: "Error crawling chapters."
-        }
-      }
+  //     // Get Book
+  //     const bookRes = await this.prismaService.book.findUnique({
+  //       where: {
+  //         scrapedUrl: bookUrl.trim()
+  //       },
+  //       select: {
+  //         bookId: true,
+  //         next: true,
+  //         chapters: {
+  //           take: 2,
+  //           orderBy: {
+  //             chapterNumber: "desc"
+  //           },
+  //           select: {
+  //             next: true,
+  //             chapterNumber: true
+  //           }
+  //         },
+  //         _count: {
+  //           select: {
+  //             chapters: true
+  //           }
+  //         }
+  //       }
+  //     });
+  //     if(!bookRes) {
+  //       return {
+  //         success: false,
+  //         error: "Error crawling chapters."
+  //       }
+  //     }
 
-      // Get Accout Cloud
-      const cloud = await this.getAccoutCloudinary(email);
-      if(!cloud?.success || !cloud?.cloud) {
-        return {
-          success: false,
-          error: "Accout Not Found"
-        }
-      }
+  //     // Get Accout Cloud
+  //     const cloud = await this.getAccoutCloudinary(email);
+  //     if(!cloud?.success || !cloud?.cloud) {
+  //       return {
+  //         success: false,
+  //         error: "Accout Not Found"
+  //       }
+  //     }
 
-      if(bookRes?.chapters.length > 0 && !bookRes?.chapters[0].next) {
-        const dataChapter = await this.crawlChapter(type, bookRes?.chapters.length>1 ? bookRes?.chapters[1].next : bookRes?.next);
+  //     if(bookRes?.chapters.length > 0 && !bookRes?.chapters[0].next) {
+  //       const dataChapter = await this.crawlChapter(type, bookRes?.chapters.length>1 ? bookRes?.chapters[1].next : bookRes?.next);
 
-        if(dataChapter?.success && !dataChapter?.next) {
-          return {
-            success: false,
-            error: "Currently at the latest chapter."
-          }
-        }
-        bookRes.chapters[0].next = dataChapter?.next
-      }
+  //       if(dataChapter?.success && !dataChapter?.next) {
+  //         return {
+  //           success: false,
+  //           error: "Currently at the latest chapter."
+  //         }
+  //       }
+  //       bookRes.chapters[0].next = dataChapter?.next
+  //     }
 
-      let chapterRes = null;
-      // Create Multiple Chapter
-      chapterRes =  await this.createMultipleChaptersBook({
-        type: type,
-        bookId: bookRes?.bookId,
-        chapterUrl: bookRes?._count.chapters > 0 ? bookRes?.chapters[0].next : bookRes?.next,
-        start: bookRes?._count.chapters,
-        take: +take,
-        cloud: cloud?.cloud
-      });
-      if(!chapterRes?.success) {
-        return {
-          success: false,
-          error: "Crawl error."
-        }
-      }
+  //     let chapterRes = null;
+  //     // Create Multiple Chapter
+  //     chapterRes =  await this.createMultipleChaptersBook({
+  //       type: type,
+  //       bookId: bookRes?.bookId,
+  //       chapterUrl: bookRes?._count.chapters > 0 ? bookRes?.chapters[0].next : bookRes?.next,
+  //       start: bookRes?._count.chapters,
+  //       take: +take,
+  //       cloud: cloud?.cloud
+  //     });
+  //     if(!chapterRes?.success) {
+  //       return {
+  //         success: false,
+  //         error: "Crawl error."
+  //       }
+  //     }
 
-      return {
-        success: true,
-        message: 'Create chapters successfully',
-        chapters: chapterRes,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error,
-      };
-    }
-  }
+  //     return {
+  //       success: true,
+  //       message: 'Create chapters successfully',
+  //       chapters: chapterRes,
+  //     };
+  //   } catch (error) {
+  //     return {
+  //       success: false,
+  //       error: error,
+  //     };
+  //   }
+  // }
 
   // Create Multiple Chapters Book
-  async createMultipleChaptersBook({
-    type,
-    bookId,
-    chapterUrl,
-    start,
-    take,
-    cloud
-  }: {
-    type: "lxhentai" | "hentaivn"
-    bookId: number;
-    chapterUrl: string;
-    start: number;
-    take: number;
-    cloud: {
-      email: string,
-      name: string,
-      key: string,
-      secret: string,
-      byte: number
-    }
-  }) {
-    let bytes = 0;
-    let listChapter = [];
-    let urlQuery = chapterUrl;
+  // async createMultipleChaptersBook({
+  //   type,
+  //   bookId,
+  //   chapterUrl,
+  //   start,
+  //   take,
+  //   cloud
+  // }: {
+  //   type: "lxhentai" | "hentaivn"
+  //   bookId: number;
+  //   chapterUrl: string;
+  //   start: number;
+  //   take: number;
+  //   cloud: {
+  //     email: string,
+  //     name: string,
+  //     key: string,
+  //     secret: string,
+  //     byte: number
+  //   }
+  // }) {
+  //   let bytes = 0;
+  //   let listChapter = [];
+  //   let urlQuery = chapterUrl;
 
-    try {
-      for(let i = start + 1; i <= start + take; i++) {
-        const dataChapter = await this.crawlChapter(type, urlQuery);
-        if (!dataChapter?.success) {
-          throw new Error(`Error crawling chapter ${i}: ${dataChapter?.error}`);
-        }
+  //   try {
+  //     for(let i = start + 1; i <= start + take; i++) {
+  //       const dataChapter = await this.crawlChapter(type, urlQuery);
+  //       if (!dataChapter?.success) {
+  //         throw new Error(`Error crawling chapter ${i}: ${dataChapter?.error}`);
+  //       }
 
-        // return {
-        //   success: true,
-        //   chapterUrl,
-        //   dataChapter
-        // };
+  //       // return {
+  //       //   success: true,
+  //       //   chapterUrl,
+  //       //   dataChapter
+  //       // };
         
-        const baseUrl = new URL(urlQuery).origin;
-        const imagesChapter =
-          await this.cloudinaryService.uploadImagesChapterByUrl({
-            cloud: {
-              name: cloud?.name,
-              key: cloud?.key,
-              secret: cloud?.secret,
-            },
-            baseUrl: baseUrl,
-            folder: `HX/books/${bookId}/chapters/${i}`,
-            listUrl: dataChapter?.chapter.content,
-          });
+  //       const baseUrl = new URL(urlQuery).origin;
+  //       const imagesChapter =
+  //         await this.cloudinaryService.uploadImagesChapterByUrl({
+  //           cloud: {
+  //             name: cloud?.name,
+  //             key: cloud?.key,
+  //             secret: cloud?.secret,
+  //           },
+  //           baseUrl: baseUrl,
+  //           folder: `HX/books/${bookId}/chapters/${i}`,
+  //           listUrl: dataChapter?.chapter.content,
+  //         });
         
-        if(!imagesChapter?.success || imagesChapter?.images.length === 0) {
-          this.cloudinaryService.deleteFolder({ folderId: `HX/books/${bookId}/chapters/${i}` });
-          throw new Error(`Failed to create images for chapter ${i}: ${imagesChapter?.error}`);
-        }
+  //       if(!imagesChapter?.success || imagesChapter?.images.length === 0) {
+  //         this.cloudinaryService.deleteFolder({ folderId: `HX/books/${bookId}/chapters/${i}` });
+  //         throw new Error(`Failed to create images for chapter ${i}: ${imagesChapter?.error}`);
+  //       }
 
-        listChapter.push({
-          bookId: bookId,
-          chapterNumber: i,
-          nameImage: cloud?.name,
-          next: dataChapter?.next,
-          title: dataChapter?.chapter.title,
-          content: JSON.stringify(imagesChapter?.images),
-        });
-        bytes += imagesChapter?.bytes;
+  //       listChapter.push({
+  //         bookId: bookId,
+  //         chapterNumber: i,
+  //         nameImage: cloud?.name,
+  //         next: dataChapter?.next,
+  //         title: dataChapter?.chapter.title,
+  //         content: JSON.stringify(imagesChapter?.images),
+  //       });
+  //       bytes += imagesChapter?.bytes;
 
-        // If the next chapter doesn't exist
-        if (!dataChapter?.next) {
-          break;
-        }
+  //       // If the next chapter doesn't exist
+  //       if (!dataChapter?.next) {
+  //         break;
+  //       }
 
-        urlQuery = dataChapter?.next
-      }
+  //       urlQuery = dataChapter?.next
+  //     }
 
-      // Create Chapter Book
-      const chapterRes = await this.prismaService.chapter.createMany({
-        data: listChapter?.map((chapter) => chapter),
-      });
-      if(!chapterRes) {
-        throw new Error(`Error creating chapters`);
-      }
+  //     // Create Chapter Book
+  //     const chapterRes = await this.prismaService.chapter.createMany({
+  //       data: listChapter?.map((chapter) => chapter),
+  //     });
+  //     if(!chapterRes) {
+  //       throw new Error(`Error creating chapters`);
+  //     }
 
-      // Update Bytes Accout
-      await this.prismaService.accoutCloudinary.update({
-        where: {
-          email: cloud?.email
-        },
-        data: {
-          byte: {
-            increment: bytes
-          }
-        }
-      });
+  //     // Update Bytes Accout
+  //     await this.prismaService.accoutCloudinary.update({
+  //       where: {
+  //         email: cloud?.email
+  //       },
+  //       data: {
+  //         byte: {
+  //           increment: bytes
+  //         }
+  //       }
+  //     });
 
-      // Update updatedAt of Book
-      await this.prismaService.book.update({
-        where: { bookId: bookId },
-        data: { updatedAt: new Date() },
-      });
+  //     // Update updatedAt of Book
+  //     await this.prismaService.book.update({
+  //       where: { bookId: bookId },
+  //       data: { updatedAt: new Date() },
+  //     });
 
-      return {
-        success: true,
-        message: "Create chapters successfully"
-      };
-    } catch (error) {
-      if (listChapter?.length > 0) {
-        try {
-          const chapterRes = await this.prismaService.chapter.createMany({
-            data: listChapter?.map((chapter) => chapter),
-          });
-          if (!chapterRes) {
-            throw new Error('Error creating remaining chapters');
-          }
+  //     return {
+  //       success: true,
+  //       message: "Create chapters successfully"
+  //     };
+  //   } catch (error) {
+  //     if (listChapter?.length > 0) {
+  //       try {
+  //         const chapterRes = await this.prismaService.chapter.createMany({
+  //           data: listChapter?.map((chapter) => chapter),
+  //         });
+  //         if (!chapterRes) {
+  //           throw new Error('Error creating remaining chapters');
+  //         }
           
-          await this.prismaService.accoutCloudinary.update({
-            where: {
-              email: cloud?.email
-            },
-            data: {
-              byte: {
-                increment: bytes
-              }
-            }
-          });
-          // Update updatedAt of Book
-          await this.prismaService.book.update({
-            where: { bookId: bookId },
-            data: { updatedAt: new Date() },
-          });
-          return {
-            success: true,
-            message: "Create chapters successfully",
-          }
-        } catch (remainingChaptersError) {
-          return {
-            success: false,
-            error: `Error creating remaining chapters: ${remainingChaptersError?.message}`,
-          };
-        }
-      }
-      return {
-        success: false,
-        error: error.message || 'Unknown error',
-      };
-    }
-  }
+  //         await this.prismaService.accoutCloudinary.update({
+  //           where: {
+  //             email: cloud?.email
+  //           },
+  //           data: {
+  //             byte: {
+  //               increment: bytes
+  //             }
+  //           }
+  //         });
+  //         // Update updatedAt of Book
+  //         await this.prismaService.book.update({
+  //           where: { bookId: bookId },
+  //           data: { updatedAt: new Date() },
+  //         });
+  //         return {
+  //           success: true,
+  //           message: "Create chapters successfully",
+  //         }
+  //       } catch (remainingChaptersError) {
+  //         return {
+  //           success: false,
+  //           error: `Error creating remaining chapters: ${remainingChaptersError?.message}`,
+  //         };
+  //       }
+  //     }
+  //     return {
+  //       success: false,
+  //       error: error.message || 'Unknown error',
+  //     };
+  //   }
+  // }
 
   // Crawl Book
   async crawlBook(type: "lxhentai" | "hentaivn", url: string) {
@@ -533,32 +533,32 @@ export class CrawlService {
     }
   }
 
-  async getAccoutCloudinary(email: string) {
-    try {
-      const cloud = await this.prismaService.accoutCloudinary.findUnique({
-        where: {
-          email: email
-        },
-        select: {
-          email: true,
-          name: true,
-          key: true,
-          secret: true,
-          byte: true
-        }
-      });
+  // async getAccoutCloudinary(email: string) {
+  //   try {
+  //     const cloud = await this.prismaService.accoutCloudinary.findUnique({
+  //       where: {
+  //         email: email
+  //       },
+  //       select: {
+  //         email: true,
+  //         name: true,
+  //         key: true,
+  //         secret: true,
+  //         byte: true
+  //       }
+  //     });
 
-      return {
-        success: true,
-        cloud: cloud
-      }
-    } catch (error) {
-      return {
-        success: false,
-        error: error
-      }
-    }
-  }
+  //     return {
+  //       success: true,
+  //       cloud: cloud
+  //     }
+  //   } catch (error) {
+  //     return {
+  //       success: false,
+  //       error: error
+  //     }
+  //   }
+  // }
 
 
 }

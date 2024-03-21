@@ -1,14 +1,33 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
+import axios from 'axios';
+import * as cheerio from 'cheerio';
+import userAgent from 'random-useragent';
+import {
+  S3Client,
+  PutObjectCommand,
+  ListObjectsV2Command,
+  DeleteObjectsCommand,
+} from '@aws-sdk/client-s3';
+import { listTagToId } from '../constants/data';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AdminService {
+  private s3_client: S3Client;
   constructor(
     private prismaService: PrismaService,
-    private cloudinaryService: CloudinaryService
-  ) {}
+    private configService: ConfigService,
+  ) {
+    this.s3_client = new S3Client({
+      region: this.configService.get("S3Region"),
+      credentials: {
+        accessKeyId: this.configService.get("Accesskey"),
+        secretAccessKey: this.configService.get("SecretAccessKey"),
+      },
+    });
+  }
 
   async findAllBooks(
     user: { userId: number; username: string; role: { name: string } },
@@ -37,17 +56,6 @@ export class AdminService {
           thumbnail: true,
           scrapedUrl: true,
           isGreatBook: true,
-          accoutsCloudBook: {
-            select: {
-              accoutCloud: {
-                select: {
-                  name: true,
-                  email: true,
-                  byte: true
-                }
-              }
-            }
-          },
           _count: {
             select: {
               chapters: true,
@@ -62,84 +70,6 @@ export class AdminService {
         success: true,
         countBook: countBook,
         books: books,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error,
-      };
-    }
-  }
-
-  async findAllAccoutCloud(
-    user: { userId: number; username: string; role: { name: string } },
-    options: { take?: number; skip?: number; sort?: 'desc' | 'asc' },
-  ) {
-    if (user?.role.name !== 'admin') {
-      return {
-        success: false,
-        error: 'You are not an admin',
-      };
-    }
-
-    const { take = 50, skip = 0, sort = 'desc' } = options;
-
-    try {
-      const accouts = await this.prismaService.accoutCloudinary.findMany({
-        take: +take,
-        skip: +skip,
-        orderBy: {
-          updatedAt: sort,
-        },
-        select: {
-          name: true,
-          key: true,
-          secret: true,
-          email: true,
-          byte: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
-
-      return {
-        success: true,
-        accouts: accouts,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error,
-      };
-    }
-  }
-
-  async createAccoutCloud(
-    user: { userId: number; username: string; role: { name: string } },
-    options: { email: string, name: string, key: string, secret: string },
-  ) {
-    if (user?.role.name !== 'admin') {
-      return {
-        success: false,
-        error: 'You are not an admin',
-      };
-    }
-
-    const { email, name, key, secret } = options;
-
-    try {
-      const accout = await this.prismaService.accoutCloudinary.create({
-        data: {
-          email: email,
-          name: name,
-          key: key,
-          secret: secret,
-        }
-      });
-
-      return {
-        success: true,
-        accout: accout,
       };
     } catch (error) {
       return {
@@ -275,14 +205,14 @@ export class AdminService {
           },
         },
         orderBy: {
-          rank: "desc"
+          rank: 'desc',
         },
         select: {
           userId: true,
           name: true,
           username: true,
           email: true,
-          rank: true
+          rank: true,
           // password: true,
         },
       });
@@ -301,360 +231,355 @@ export class AdminService {
     }
   }
 
-  async changeCloudBook({ bookId, email }: { bookId: string, email: string }) {
+  async test(bookId: number) {
     try {
-      // Get Accout Cloud
-      const cloud = await this.getAccoutCloudinary(email);
-      if(!cloud?.success || !cloud?.cloud) {
-        return {
-          success: false,
-          error: "Accout Not Found"
-        }
+      return {
+        success: true
       }
-
-      if(cloud?.cloud.byte/(1024*1024) > 400) {
-        return {
-          success: false,
-          error: cloud?.cloud.email + " is currently at 400MB of your plan limit."
-        }
-      }
-
-      const book = await this.prismaService.book.findUnique({
+      const books = await this.prismaService.book.findMany({
         where: {
-          bookId: +bookId
+          type: "hentaivn",
+          check: false
         },
         select: {
-          nameImage: true,
-          thumbnail: true,
-        }
-      });
-
-      const image = await this.cloudinaryService.changeCloudBook({
-        bookId: +bookId,
-        oldImage: `https://res.cloudinary.com/${book?.nameImage}/image/upload/${book?.thumbnail}`,
-        name: cloud?.cloud.name,
-        key: cloud?.cloud.key,
-        secret: cloud?.cloud.secret
-      });
-      if(!image?.success) {
-        throw new Error("Upload image error");
-      }
-      const bookUpdate = await this.prismaService.book.update({
-        where: {
-          bookId: +bookId
-        },
-        data: {
-          nameImage: cloud?.cloud.name,
-          thumbnail: image?.urlImage,
-          updatedAt: undefined,
-        },
-      });
-
-      await this.prismaService.accoutCloudinary.update({
-        where: {
-          name: cloud?.cloud.name,
-        },
-        data: {
-          books: {
-            connectOrCreate: {
-              where: {
-                bookId_name: {
-                  bookId: +bookId,
-                  name: cloud?.cloud.name
-                }
-              },
-              create: {
-                bookId: +bookId
-              }
+          bookId: true,
+          scrapedUrl: true,
+          next: true,
+          _count: {
+            select: {
+              chapters: true
             }
-          },
-          byte: {
-            increment: image?.bytes
           }
         }
       });
 
-      console.log("END ======================");
-
-      return {
-        success: true,
-        book: bookUpdate
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error,
-      };
-    }
-  }
-
-  async changeCloudChapters({ take, bookId, email }: { take: string, bookId: string, email: string }) {
-    try {
-      // Get Accout Cloud
-      // const cloud = await this.getAccoutCloudinary(email);
-      const clouds = await this.prismaService.accoutCloudinary.findMany({
-        where: {
-          OR: [
-            {
-              books: {
-                some: {
-                  bookId: +bookId
-                }
-              }
-            },
-            {
-              email: email
-            }
-          ]
-        },
-        select: {
-          name: true,
-          key: true,
-          secret: true,
-          email: true,
-          byte: true
-        }
-      });
-      if(clouds.length <= 0 || !clouds) {
-        return {
-          success: false,
-          error: "Accout Not Found"
-        }
-      }
-
-      // return {
-      //   success: false,
-      //   clouds: clouds
+      // for(const book of books) {
+      //   const cvSc = book?.next.replace("https://hentaivn.one/", "").replace("https://hentaivn.blue/", "");
+      //   if(cvSc !== book?.next) {
+      //     await this.prismaService.book.update({
+      //       where: {
+      //         bookId: book?.bookId
+      //       },
+      //       data: {
+      //         next: cvSc
+      //       }
+      //     })
+      //   }
       // }
-
-      // Check Cloud With Email
-      const dataCloud = clouds.find(cloud => cloud.email === email);
-      if(!dataCloud) {
-        return {
-          success: false,
-          error: "Accout Not Found"
+      for(const book of books) {
+        // const book = await this.prismaService.book.findUnique({
+        //   where: {
+        //     bookId: +bookId,
+        //     type: "hentaivn"
+        //   },
+        //   select: {
+        //     bookId: true,
+        //     scrapedUrl: true,
+        //     next: true,
+        //     _count: {
+        //       select: {
+        //         chapters: true
+        //       }
+        //     }
+        //   }
+        // });
+        // if(!book) {
+        //   return {
+        //     success: false,
+        //     message: "Không phải hentaivn"
+        //   }
+        // }
+  
+        const dataBook = await this.crawlBook(
+          'hentaivn',
+          'https://hentaivn.blue/' + book?.scrapedUrl,
+        );
+        if (!dataBook?.success) {
+          throw new Error('Error crawling book');
         }
-      }
-
-      if(dataCloud?.byte/(1024*1024) > 400) {
-        return {
-          success: false,
-          error: dataCloud?.email + " is currently at 400MB of your plan limit."
-        }
-      }
-
-      const chapters = await this.prismaService.chapter.findMany({
-        take: +take || 1,
-        where: {
-          bookId: +bookId,
-          nameImage: {
-            notIn: clouds.map(cloud => cloud?.name)
-          }
-        },
-        select: {
-          chapterNumber: true,
-          nameImage: true,
-          content: true,
-        }
-      });
-      if(chapters?.length === 0 || !chapters) {
-        return {
-          success: true,
-          message: "All cloud chapters have been changed."
-        }
-      }
-
-      let bytes = 0;
-      for(const chapter of chapters) {
-        const images = await this.cloudinaryService.changeCloudChapters({
-          content: JSON.parse(chapter?.content),
-          oldNameImage: chapter?.nameImage,
-          name: dataCloud?.name,
-          key: dataCloud?.key,
-          secret: dataCloud?.secret
-        });
-        if(!images?.success || !images?.images) {
-          throw new Error("Change Cloud Chapter " + chapter?.chapterNumber + " Error")
-        }
-        await this.prismaService.chapter.update({
-          where: {
-            chapterNumber_bookId: {
-              bookId: +bookId,
-              chapterNumber: chapter?.chapterNumber
-            },
-          },
-          data: {
-            nameImage: dataCloud?.name
-          }
-        });
-        bytes += images?.bytes;
-        console.log("Change Cloud Chapter " + chapter?.chapterNumber + " Successfully");
-
-        if((dataCloud?.byte + bytes)/(1024*1024)>400) {
-          await this.prismaService.accoutCloudinary.update({
-            where: {
-              name: dataCloud?.name,
-            },
-            data: {
-              books: {
-                connectOrCreate: {
-                  where: {
-                    bookId_name: {
-                      bookId: +bookId,
-                      name: dataCloud?.name
-                    }
-                  },
-                  create: {
-                    bookId: +bookId
-                  }
-                }
-              },
-              byte: {
-                increment: bytes
-              }
-            }
-          });
-    
-          console.log("END ======================");
+  
+        const imageUpload = await this.uploadImageBookOnS3({ type: "hentaivn", bookId: book?.bookId, url: dataBook?.book.thumbnail });
+        if(!imageUpload) {
           return {
             success: false,
-            error: dataCloud?.email + " is currently at 400MB of your plan limit."
+            message: "Upload thumbnail book error"
           }
         }
-      }
-      
-      await this.prismaService.accoutCloudinary.update({
-        where: {
-          name: dataCloud?.name,
-        },
-        data: {
-          books: {
-            connectOrCreate: {
-              where: {
-                bookId_name: {
-                  bookId: +bookId,
-                  name: dataCloud?.name
-                }
-              },
-              create: {
-                bookId: +bookId
-              }
-            }
+  
+        await this.prismaService.book.update({
+          where: {
+            bookId: book?.bookId
           },
-          byte: {
-            increment: bytes
+          data: {
+            thumbnail: imageUpload?.imageKey,
+            check: true
+          }
+        });
+  
+        if (!book?.next) {
+          return {
+            success: true,
+            message: 'Chưa có chương nào',
+          };
+        }
+        const chaptersUpdate = await this.createMultipleChaptersBook({
+          take: book?._count.chapters,
+          bookId: book?.bookId,
+          chapterUrl: book?.next,
+          type: 'hentaivn',
+        });
+        if(!chaptersUpdate?.success) {
+          return {
+            success: false,
+            error: chaptersUpdate?.error
           }
         }
-      });
 
-      console.log("END ======================");
-
-      return {
-        success: true,
-        bytes: ((bytes+dataCloud?.byte)/(1024*1024)).toFixed(2),
-        chapterCount: chapters?.length,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error,
-      };
-    }
-  }
-
-  async deleteCloud(name: string) {
-    try {
-      const cloud = await this.prismaService.accoutCloudinary.delete({
-        where: {
-          name: name
-        }
-      });
-
-      return {
-        success: true,
-        cloud: cloud
+        console.log("Get Book " + book?.bookId + " Successfully =================");
+        await this.wait(3000);
       }
-    } catch (error) {
-      return {
-        success: false,
-        error: error
-      }
-    }
-  }
 
-  async getAccoutCloudinary(email: string) {
-    try {
-      const cloud = await this.prismaService.accoutCloudinary.findUnique({
-        where: {
-          email: email
-        }
-      });
-
-      return {
-        success: true,
-        cloud: cloud
-      }
-    } catch (error) {
-      return {
-        success: false,
-        error: error
-      }
-    }
-  }
-
-  async test(page: number) {
-    try {
-      const books = await this.prismaService.accoutCloudinary.update({
-        where: {
-          name: "domksjrw8"
-        },
-        data: {
-          books: {
-            connectOrCreate: {
-              where: {
-                bookId_name: {
-                  bookId: 419,
-                  name: "domksjrw8"
-                }
-              },
-              create: {
-                bookId: 419
-              }
-            }
-          },
-        }
-      });
-
-      // let i = 1;
-      // for(const book of books) {
-      //   const updateBooks = await this.prismaService.book.update({
-      //     where: {
-      //       bookId: book.bookId
-      //     },
-      //     data: {
-      //       updatedAt: book?.createdAt
-      //     }
-      //   })
-
-      //   console.log("Update bookId: " + book?.bookId + " - STT: " + i);
-      //   await this.wait(1000);
-      //   i++;
-      // }
-
-      // const book = await this.prismaService.book.update({
+      // const u = await this.prismaService.book.update({
       //   where: {
-      //     bookId: 412
+      //     bookId: +bookId
       //   },
       //   data: {
-      //     nameImage: "dmz5itizb"
+      //     check: true
       //   }
       // })
 
-      console.log("END =====================")
       return {
         success: true,
-        // books: books
+        // dataBook: dataBook,
+        // chapters: chapters,
+        // book
+        // image: "https://d32phrebrjmlad.cloudfront.net/" + imageUpload?.imageKey
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error,
+      };
+    }
+  }
+
+  // Create Multiple Chapters Book
+  async createMultipleChaptersBook({
+    type,
+    take,
+    bookId,
+    chapterUrl,
+  }: {
+    take: number,
+    type: 'lxhentai' | 'hentaivn';
+    bookId: number;
+    chapterUrl: string;
+  }) {
+    let i = 1;
+    let urlQuery = chapterUrl;
+
+    try {
+      while (!!urlQuery && i <= take) {
+        const dataChapter = await this.crawlChapter(
+          type,
+          'https://hentaivn.blue/' + urlQuery,
+        );
+        if (
+          !dataChapter?.success ||
+          dataChapter?.chapter?.content.length === 0
+        ) {
+          throw new Error(`Error crawling chapter ${i}: ${dataChapter?.error}`);
+        }
+
+        let cvNextUrl = null;
+        if (dataChapter?.next) {
+          cvNextUrl = dataChapter?.next
+            .replace('https://hentaivn.one/', '')
+            .replace('https://hentaivn.blue/', '');
+        }
+
+        // return {
+        //   success: true,
+        //   chapterUrl,
+        //   dataChapter,
+        //   cvNextUrl
+        // };
+
+        console.log(dataChapter?.chapter.content);
+
+        const imagesChapter = await this.uploadImagesChapters({
+          baseUrl: 'https://hentaivn.blue',
+          folder: `books/${bookId}/chapters/${i}`,
+          listUrl: dataChapter?.chapter.content,
+        });
+
+        console.log(imagesChapter);
+
+        if (!imagesChapter?.success || imagesChapter?.images.length === 0) {
+          const listObjectsParams = {
+            Bucket: 'hxclub-bucket',
+            Prefix: `books/${bookId}/chapters/${i}`,
+          };
+          const data = await this.s3_client.send(
+            new ListObjectsV2Command(listObjectsParams),
+          );
+
+          // Lấy danh sách các khóa của các đối tượng trong thư mục
+          const objectsToDelete = data.Contents.map((object) => ({
+            Key: object.Key,
+          }));
+
+          // Nếu có đối tượng để xóa, thực hiện xóa
+          if (objectsToDelete.length > 0) {
+            const deleteParams = {
+              Bucket: 'hxclub-bucket',
+              Delete: {
+                Objects: objectsToDelete,
+              },
+            };
+            await this.s3_client.send(new DeleteObjectsCommand(deleteParams));
+          }
+          throw new Error(
+            `Failed to create images for chapter ${i}: ${imagesChapter?.error}`,
+          );
+        }
+
+        // Update Chapter Book
+        const chapterRes = await this.prismaService.chapter.update({
+          where: {
+            chapterNumber_bookId: {
+              bookId: bookId,
+              chapterNumber: i,
+            },
+          },
+          data: {
+            next: cvNextUrl,
+            content: JSON.stringify(imagesChapter?.images),
+          },
+        });
+        if (!chapterRes) {
+          throw new Error(`Error creating chapters`);
+        }
+
+        console.log('Upload chapter ' + i + ' successfully');
+
+        // If the next chapter doesn't exist
+        if (!dataChapter?.next) {
+          break;
+        }
+
+        urlQuery = cvNextUrl;
+        i++;
+
+        await this.wait(2000);
       }
+
+      console.log('End ===========================');
+      return {
+        success: true,
+        message: 'Create chapters successfully',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || 'Unknown error',
+      };
+    }
+  }
+
+  async uploadImagesChapters(data: {
+    baseUrl: string;
+    folder: string;
+    listUrl: string[];
+    width?: number;
+    height?: number;
+  }) {
+    const { baseUrl = '', folder = '', listUrl = [] } = data;
+    let results = [];
+    let k = 0;
+    try {
+      for (let i = 0; i < listUrl.length; i += 5) {
+        const chunkUrls = listUrl.slice(i, i + 5);
+        const uploadPromises = await chunkUrls.map(async (url) => {
+          const imageGet = await axios.get(`${url}`, {
+            responseType: 'arraybuffer',
+            headers: {
+              referer: baseUrl,
+              'Sec-Ch-Ua':
+                '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
+              'Sec-Ch-Ua-Mobile': '?0',
+              'Sec-Ch-Ua-Platform': 'Windows',
+              'User-Agent': userAgent?.getRandom(),
+            },
+          });
+
+          const key = folder + '/' + k + '.jpg';
+
+          console.log('Upload image ' + k);
+
+          k++;
+          return new Promise<string>(async (resolve, reject) => {
+            try {
+              const result = await this.s3_client.send(
+                new PutObjectCommand({
+                  Bucket: 'hxclub-bucket',
+                  Key: key,
+                  ContentType: imageGet?.headers['content-type'],
+                  Body: Buffer.from(imageGet?.data),
+                }),
+              );
+              // Nếu không có lỗi, gọi resolve với key của đối tượng được tải lên
+              resolve(key);
+            } catch (error) {
+              // Nếu có lỗi, gọi reject với lỗi đó
+              reject(error);
+            }
+          });
+        });
+
+        const chunkResults = await Promise.all(uploadPromises);
+        results.push(...chunkResults);
+
+        await this.wait(1000);
+      }
+      return {
+        success: true,
+        images: results,
+      };
+    } catch (error) {
+      return { success: false, error };
+    }
+  }
+
+  async uploadImageBookOnS3({
+    type,
+    bookId,
+    chapterNumber,
+    url,
+  }: {
+    type: 'hentaivn' | 'lxhentai';
+    bookId: number;
+    chapterNumber?: number;
+    url: string;
+  }) {
+    try {
+      const imageGet = await axios.get(url, {
+        responseType: 'arraybuffer',
+      });
+
+      const key = `books/${bookId}/${Date.now().toString()}.jpg`;
+      await this.s3_client.send(
+        new PutObjectCommand({
+          Bucket: 'hxclub-bucket',
+          Key: key,
+          ContentType: imageGet?.headers['content-type'],
+          Body: Buffer.from(imageGet?.data),
+        }),
+      );
+      return {
+        success: true,
+        imageKey: key,
+      };
     } catch (error) {
       return {
         success: false,
@@ -664,90 +589,141 @@ export class AdminService {
   }
 
   wait(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  async updatCloud() {
+  // Crawl Book
+  async crawlBook(type: 'lxhentai' | 'hentaivn', url: string) {
     try {
-      const books = await this.prismaService.book.findMany({ select: { bookId: true } });
-      for(const book of books) {
-        const chapters = await this.prismaService.chapter.findMany({
-          // take: 500,
-          // skip: (+page - 1)*500,
-          orderBy: {
-            createdAt: "desc"
-          },
-          where: {
-            bookId: book?.bookId
-          },
-          select: {
-            nameImage: true,
-            bookId: true,
-            chapterNumber: true
+      const baseUrl = new URL(url).origin;
+      const response = await axios.get(url, {
+        headers: {
+          referer: baseUrl,
+          'Sec-Ch-Ua':
+            '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
+          'Sec-Ch-Ua-Mobile': '?0',
+          'Sec-Ch-Ua-Platform': 'Windows',
+          'User-Agent': userAgent?.getRandom(),
+        },
+      });
+      const $ = cheerio.load(response.data);
+      let title = '';
+      let thumbnail = null;
+      let description = '';
+      let anotherName = '';
+      let status = 1;
+      let author = '';
+      let tags = [];
+      let next = null;
+
+      if (type === 'lxhentai') {
+        title = $('title').text().split('- LXHENTAI')[0].trim();
+        const urlMatch = /url\('([^']+)'\)/.exec(
+          $('.rounded-lg.cover').attr('style'),
+        );
+        thumbnail = urlMatch ? urlMatch[1] : null;
+        author = $('.mt-2 .text-blue-500').first().text();
+        $(
+          '.bg-gray-500.hover\\:bg-gray-600.text-white.rounded.px-2.text-sm.inline-block',
+        ).each((index, element) => {
+          const tag = $(element).text().trim();
+          if (listTagToId[tag]) {
+            tags.push(listTagToId[tag]);
           }
         });
-        let count = 0;
-        let oldBookId = null;
-        let oldNameImage = null;
-        for(const chapter of chapters) {
-          if(oldNameImage !== chapter?.nameImage) {
-            try {
-              const cloudConnect = await this.prismaService.accoutCloudBook.create({
-                data: {
-                  bookId: chapter?.bookId,
-                  name: chapter?.nameImage
-                },
-                select: {
-                  bookId: true,
-                  accoutCloud: true
-                }
-              });
-              console.log("bookId: " + chapter?.bookId + ", nameImage: " + chapter?.nameImage)
-            } catch (error) {
-              if(error.code ===  'P2003') {
-                console.log("EEEEEEEEEEEEEEEE - Cloud Not Found: ", {
-                  bookId: chapter?.bookId,
-                  name: chapter?.nameImage
-                });
-                // return {
-                //   success: false,
-                //   error: error,
-                //   message: "Cloud Name Not Found: " + chapter?.nameImage + ", BookId: " + chapter?.bookId
-                // }
-              }
-              else if(error.code === "P2002") {
-                console.log("bookId: " + chapter?.bookId + ", nameImage: " + chapter?.nameImage)
-              }
-              else {
-                console.log("bookId: " + chapter?.bookId + ", nameImage: " + chapter?.nameImage + " Error: ", error);
-              }
-              // return {
-              //   success: false,
-              //   error: error
-              // }
-            }
-            console.log("count: ", count);
-            count = 0;
+        next = $('.overflow-y-auto.overflow-x-hidden>a').last().attr('href');
+      } else if (type === 'hentaivn') {
+        title = $(`.page-ava img`).attr('alt').split('Truyện hentai')[1].trim();
+        const text = $('title')
+          .text()
+          .match(/\[(.*?)\]/);
+        anotherName = text ? text[1] : '';
+        thumbnail = $(`.page-ava img`).attr('src');
+        status = 1;
+        author = $('span.info').eq(3).next().text();
+        description = '';
+        $('a.tag').each((index, element) => {
+          const tag = $(element).text().trim();
+          if (listTagToId[tag]) {
+            tags.push(listTagToId[tag]);
           }
-          oldBookId = chapter?.bookId;
-          oldNameImage = chapter?.nameImage;
-          count++;
-        }
-        console.log("Successfully -----------------------------------------------------------------------");
-
-        await this.wait(1000);
+        });
+        next = $('.watch-online a').attr('href');
       }
-
-      // const clouds = await this.prismaService.accoutCloudinary.findMany({})
 
       return {
         success: true,
-        // chapters: chapters,
-        // clouds: clouds
-        // books: books
+        book: {
+          title: title,
+          thumbnail: thumbnail,
+          description: description,
+          anotherName: anotherName,
+          status: status,
+          author: author,
+          tags: tags,
+          next: next.length > 0 ? new URL(url).origin + next : null,
+        },
       };
     } catch (error) {
-      
+      return {
+        success: false,
+        message: error,
+      };
+    }
+  }
+
+  // Crawl Chapter
+  async crawlChapter(type: 'lxhentai' | 'hentaivn', url: string) {
+    try {
+      // const baseUrl = new URL(url).origin;
+      const response = await axios.get(url, {
+        headers: {
+          referer: 'https://hentaivn.blue',
+          'Sec-Ch-Ua':
+            '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
+          'Sec-Ch-Ua-Mobile': '?0',
+          'Sec-Ch-Ua-Platform': 'Windows',
+          'User-Agent': userAgent?.getRandom(),
+        },
+      });
+      const $ = cheerio.load(response.data);
+
+      let title = '';
+      let content = [];
+      let next = null;
+
+      if (type === 'lxhentai') {
+        title = '';
+        content = $('.lazy.max-w-full.my-0.mx-auto')
+          .map((index, element) => $(element).attr('src'))
+          .get();
+        let nextChapter = $('a#btn-next').attr('href');
+        next =
+          nextChapter === 'javascript:nm5213(0)'
+            ? null
+            : new URL(url).origin + nextChapter;
+      } else if (type === 'hentaivn') {
+        title = '';
+        content = $('#image img')
+          .map((index, element) => $(element).attr('data-src'))
+          .get();
+        const nextChapter = $('#nextLink.b-next').attr('href');
+        next = nextChapter ? new URL(url).origin + '/' + nextChapter : null;
+      }
+
+      return {
+        success: true,
+        next: next,
+        chapter: {
+          title: title,
+          content: content,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error,
+      };
     }
   }
 }

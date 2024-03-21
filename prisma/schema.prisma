@@ -50,6 +50,8 @@ model Book {
   nameImage   String
   scrapedUrl  String   @unique
   next        String?
+  type        String?  @default("lxhentai")
+  check       Boolean  @default(false)
   isGreatBook Boolean? @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -59,12 +61,12 @@ model Book {
   authorId   Int?
   author     Author? @relation(fields: [authorId], references: [authorId], onDelete: Cascade)
 
-  tags             BookTag[]
-  chapters         Chapter[]
-  userViews        UserView[]
-  comments         Comment[]
-  usersFollow      UserBookFollowModel[]
-  accoutsCloudBook AccoutCloudBook[]
+  tags        BookTag[]
+  chapters    Chapter[]
+  userViews   UserView[]
+  comments    Comment[]
+  usersFollow UserBookFollowModel[]
+  // accoutsCloudBook AccoutCloudBook[]
 
   @@index([bookId])
 }
@@ -159,25 +161,25 @@ model Comment {
   replyComments Comment[] @relation(name: "ParentComment")
 }
 
-model AccoutCloudBook {
-  bookId Int
-  name   String
+// model AccoutCloudBook {
+//   bookId Int
+//   name   String
 
-  book        Book             @relation(fields: [bookId], references: [bookId], onDelete: Cascade)
-  accoutCloud AccoutCloudinary @relation(fields: [name], references: [name], onDelete: Cascade)
+//   book        Book             @relation(fields: [bookId], references: [bookId], onDelete: Cascade)
+//   accoutCloud AccoutCloudinary @relation(fields: [name], references: [name], onDelete: Cascade)
 
-  @@id([bookId, name])
-}
+//   @@id([bookId, name])
+// }
 
-model AccoutCloudinary {
-  name      String            @unique
-  email     String            @unique
-  key       String            @unique
-  secret    String            @unique
-  byte      Int               @default(0)
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
-  books     AccoutCloudBook[]
+// model AccoutCloudinary {
+//   name      String            @unique
+//   email     String            @unique
+//   key       String            @unique
+//   secret    String            @unique
+//   byte      Int               @default(0)
+//   createdAt DateTime          @default(now())
+//   updatedAt DateTime          @updatedAt
+//   books     AccoutCloudBook[]
 
-  @@id([name])
-}
+//   @@id([name])
+// }
