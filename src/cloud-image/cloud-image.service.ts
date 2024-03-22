@@ -2,14 +2,12 @@ import axios from 'axios';
 import userAgent from 'random-useragent';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from 'src/prisma/prisma.service';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 
 @Injectable()
 export class CloudImageService {
   private s3_client: S3Client;
   constructor(
-    private prismaService: PrismaService,
     private configService: ConfigService,
   ) {
     this.s3_client = new S3Client({
@@ -99,10 +97,8 @@ export class CloudImageService {
                   Body: Buffer.from(imageGet?.data),
                 }),
               );
-              // Nếu không có lỗi, gọi resolve với key của đối tượng được tải lên
               resolve(key);
             } catch (error) {
-              // Nếu có lỗi, gọi reject với lỗi đó
               reject(error);
             }
           });

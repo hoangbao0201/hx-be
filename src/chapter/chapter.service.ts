@@ -1,6 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { CreateChapterDto } from './dto/create-chapter.dto';
-import { UpdateChapterDto } from './dto/update-chapter.dto';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
