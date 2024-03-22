@@ -1,17 +1,16 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { ConfigModule } from '@nestjs/config';
+import { BookModule } from './book/book.module';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
-import { ConfigModule } from '@nestjs/config';
-import { PrismaModule } from './prisma/prisma.module';
-import { CrawlModule } from './crawl/crawl.module';
-import { CloudinaryModule } from './cloudinary/cloudinary.module';
-import { ImagesModule } from './images/images.module';
-import { ChapterModule } from './chapter/chapter.module';
-import { BookModule } from './book/book.module';
-import { CommentModule } from './comment/comment.module';
+import { AppController } from './app.controller';
 import { AdminModule } from './admin/admin.module';
+import { CrawlModule } from './crawl/crawl.module';
+import { ImagesModule } from './images/images.module';
+import { PrismaModule } from './prisma/prisma.module';
+import { CommentModule } from './comment/comment.module';
+import { ChapterModule } from './chapter/chapter.module';
 import { CloudImageModule } from './cloud-image/cloud-image.module';
 
 @Module({
@@ -23,7 +22,6 @@ import { CloudImageModule } from './cloud-image/cloud-image.module';
     AuthModule,
     UserModule,
     CrawlModule,
-    CloudinaryModule,
     ImagesModule,
     ChapterModule,
     BookModule,

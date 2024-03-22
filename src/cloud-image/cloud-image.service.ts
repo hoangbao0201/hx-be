@@ -2,7 +2,7 @@ import axios from 'axios';
 import userAgent from 'random-useragent';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { DeleteObjectsCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 
 @Injectable()
 export class CloudImageService {
@@ -24,10 +24,8 @@ export class CloudImageService {
     url,
     bookId,
   }: {
-    type: 'hentaivn' | 'lxhentai';
-    bookId: number;
-    chapterNumber?: number;
     url: string;
+    bookId: number;
   }) {
     try {
       const imageGet = await axios.get(url, {
@@ -57,13 +55,12 @@ export class CloudImageService {
 
   // Upload Images Chapter
   async uploadImagesChapterOnS3(data: {
-    baseUrl: string;
-    folder: string;
-    listUrl: string[];
-    width?: number;
-    height?: number;
+    bookId: number,
+    domain: string,
+    listUrl: string[],
+    chapterNumber: number,
   }) {
-    const { baseUrl = '', folder = '', listUrl = [] } = data;
+    const { bookId, domain, chapterNumber, listUrl = [] } = data;
     let results = [];
     let k = 0;
     try {
@@ -73,7 +70,7 @@ export class CloudImageService {
           const imageGet = await axios.get(`${url}`, {
             responseType: 'arraybuffer',
             headers: {
-              referer: baseUrl,
+              referer: domain,
               'Sec-Ch-Ua':
                 '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
               'Sec-Ch-Ua-Mobile': '?0',
@@ -82,14 +79,12 @@ export class CloudImageService {
             },
           });
 
-          const key = folder + '/' + k + '.jpg';
-
-          console.log('Upload image ' + k);
+          const key = `books/${bookId}/chapters/${chapterNumber}/` + k + '.jpg';
 
           k++;
           return new Promise<string>(async (resolve, reject) => {
             try {
-              const result = await this.s3_client.send(
+              await this.s3_client.send(
                 new PutObjectCommand({
                   Bucket: 'hxclub-bucket',
                   Key: key,
@@ -115,6 +110,43 @@ export class CloudImageService {
       };
     } catch (error) {
       return { success: false, error };
+    }
+  }
+
+  // Delete folder
+  async deleteFolder(prefix: string) {
+    try {
+      const listObjectsParams = {
+        Bucket: 'hxclub-bucket',
+        Prefix: prefix,
+      };
+      const data = await this.s3_client.send(
+        new ListObjectsV2Command(listObjectsParams),
+      );
+
+      // Lấy danh sách các khóa của các đối tượng trong thư mục
+      const objectsToDelete = data.Contents.map((object) => ({
+        Key: object.Key,
+      }));
+
+      // Nếu có đối tượng để xóa, thực hiện xóa
+      if (objectsToDelete.length > 0) {
+        const deleteParams = {
+          Bucket: 'hxclub-bucket',
+          Delete: {
+            Objects: objectsToDelete,
+          },
+        };
+        await this.s3_client.send(new DeleteObjectsCommand(deleteParams));
+      }
+      return {
+        success: true
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error
+      }
     }
   }
 

@@ -6,32 +6,32 @@ import { JwtGuard } from '../auth/guard/jwt.guard';
 export class CrawlController {
   constructor(private readonly crawlService: CrawlService) {}
 
-  // @UseGuards(JwtGuard)
-  // @Post('/book')
-  // createBook(
-  //   @Request() req,
-  //   @Body('type') type: "lxhentai" | "hentaivn",
-  //   @Body('bookUrl') bookUrl: string,
-  // ) {
-  //   return this.crawlService.createBook(req.user.userId, {
-  //     type: type,
-  //     bookUrl: bookUrl,
-  //   });
-  // }
+  @UseGuards(JwtGuard)
+  @Post('/book')
+  createBook(
+    @Request() req,
+    @Body('bookUrl') bookUrl: string,
+    @Body('type') type: "lxhentai" | "hentaivn",
+  ) {
+    return this.crawlService.createBook(req.user.userId, {
+      type: type,
+      bookUrl: bookUrl,
+    });
+  }
 
-  // @UseGuards(JwtGuard)
-  // @Post('/chapter')
-  // createChapters(
-  //   @Request() req,
-  //   @Body('type') type: "lxhentai" | "hentaivn",
-  //   @Body('take') take: number,
-  //   @Body('bookUrl') bookUrl: string,
-  // ) {
-  //   return this.crawlService.createChapters(req.user.userId, {
-  //     type: type,
-  //     take: +take || 1,
-  //     bookUrl: bookUrl,
-  //   });
-  // }
+  @UseGuards(JwtGuard)
+  @Post('/chapter')
+  createChapters(
+    @Request() req,
+    @Body('type') type: "lxhentai" | "hentaivn",
+    @Body('take') take: number,
+    @Body('bookUrl') bookUrl: string,
+  ) {
+    return this.crawlService.createChapters(req.user.userId, {
+      type: type,
+      take: +take || 1,
+      bookUrl: bookUrl,
+    });
+  }
 
 }

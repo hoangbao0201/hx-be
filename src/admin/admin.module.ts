@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { AdminService } from './admin.service';
 import { AdminController } from './admin.controller';
-import { JwtService } from '@nestjs/jwt';
-import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
+import { CloudImageService } from '../cloud-image/cloud-image.service';
 
 @Module({
   controllers: [AdminController],
-  providers: [AdminService, JwtService, CloudinaryService],
+  providers: [AdminService, JwtService, CloudImageService],
 })
 export class AdminModule {}

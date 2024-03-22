@@ -7,10 +7,6 @@ export class CrawlChapterDTO {
     bookUrl: string
 
     @IsString()
-    @IsNotEmpty()
-    email: string
-
-    @IsString()
     @IsOptional()
     @IsIn(["lxhentai", "hentaivn"])
     type: "lxhentai" | "hentaivn"
