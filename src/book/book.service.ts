@@ -101,7 +101,6 @@ export class BookService {
           bookId: true,
           title: true,
           slug: true,
-          nameImage: true,
           thumbnail: true,
           scrapedUrl: true,
           isGreatBook: true,
@@ -154,7 +153,6 @@ export class BookService {
           anotherName: true,
           description: true,
           status: true,
-          nameImage: true,
           thumbnail: true,
           tags: true,
           author: {
@@ -335,7 +333,6 @@ export class BookService {
               bookId: true,
               title: true,
               slug: true,
-              nameImage: true,
               thumbnail: true,
               scrapedUrl: true,
               isGreatBook: true,

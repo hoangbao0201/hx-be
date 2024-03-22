@@ -19,7 +19,6 @@ export class ChapterService {
         select: {
           bookId: true,
           chapterNumber: true,
-          nameImage: true,
           content: true,
           title: true,
           createdAt: true,

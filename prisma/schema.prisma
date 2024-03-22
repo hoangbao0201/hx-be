@@ -47,11 +47,9 @@ model Book {
   description String?
   status      Int      @default(1)
   thumbnail   String?
-  nameImage   String
   scrapedUrl  String   @unique
   next        String?
-  type        String?  @default("lxhentai")
-  check       Boolean  @default(false)
+  type        String   @default("lxhentai")
   isGreatBook Boolean? @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -124,7 +122,6 @@ model Chapter {
   title         String?
   next          String?
   content       String  @db.Text
-  nameImage     String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -160,26 +157,3 @@ model Comment {
 
   replyComments Comment[] @relation(name: "ParentComment")
 }
-
-// model AccoutCloudBook {
-//   bookId Int
-//   name   String
-
-//   book        Book             @relation(fields: [bookId], references: [bookId], onDelete: Cascade)
-//   accoutCloud AccoutCloudinary @relation(fields: [name], references: [name], onDelete: Cascade)
-
-//   @@id([bookId, name])
-// }
-
-// model AccoutCloudinary {
-//   name      String            @unique
-//   email     String            @unique
-//   key       String            @unique
-//   secret    String            @unique
-//   byte      Int               @default(0)
-//   createdAt DateTime          @default(now())
-//   updatedAt DateTime          @updatedAt
-//   books     AccoutCloudBook[]
-
-//   @@id([name])
-// }
