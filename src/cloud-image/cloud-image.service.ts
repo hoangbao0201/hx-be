@@ -41,6 +41,7 @@ export class CloudImageService {
           Body: Buffer.from(imageGet?.data),
         }),
       );
+      
       return {
         success: true,
         imageKey: key,
@@ -92,6 +93,8 @@ export class CloudImageService {
                   Body: Buffer.from(imageGet?.data),
                 }),
               );
+              console.log("Image " + k)
+              console.log(key)
               resolve(key);
             } catch (error) {
               reject(error);
@@ -102,7 +105,9 @@ export class CloudImageService {
         const chunkResults = await Promise.all(uploadPromises);
         results.push(...chunkResults);
 
-        // await this.wait(1000);
+        if(listUrl.length>30) {
+          await this.wait(3000);
+        }
       }
       return {
         success: true,
