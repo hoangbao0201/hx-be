@@ -107,10 +107,8 @@ export class AdminService {
           },
         },
       });
-      if(deleteBook) {
-        // await this.cloudImage.deleteFolder(`books/${bookId}`);
-        console.log("Thành công")
-      }
+      await this.cloudImage.deleteFolder(`books/${bookId}`);
+      
       return {
         success: true,
       };

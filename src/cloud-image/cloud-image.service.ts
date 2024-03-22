@@ -102,7 +102,7 @@ export class CloudImageService {
         const chunkResults = await Promise.all(uploadPromises);
         results.push(...chunkResults);
 
-        await this.wait(1000);
+        // await this.wait(1000);
       }
       return {
         success: true,

@@ -198,7 +198,7 @@ export class CrawlService {
             error: 'Currently at the latest chapter.',
           };
         }
-        bookRes.chapters[0].next = dataChapter?.next;
+        bookRes.chapters[0].next = dataChapter?.next.replace(domain+"/", "");
       }
 
       // Create Multiple Chapter
