@@ -70,7 +70,7 @@ export class CrawlService {
 
         // Upload Thumbnail Novel
         const dataThumbnail = await this.cloudImage.uploadImageBookOnS3({
-          url: thumbnail,
+          url: type === "hentaivn" ? thumbnail.replace("images/190/", "images/250/") : thumbnail,
           bookId: bookRes?.bookId,
         });
 

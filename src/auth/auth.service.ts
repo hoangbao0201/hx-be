@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import * as argon from 'argon2';
@@ -26,7 +26,7 @@ export class AuthService {
             const user = await this.prismaService.user.create({
                 data: {
                     name: authDTO.name,
-                    username: authDTO.username,
+                    username: authDTO.email.split("@")[0],
                     email: authDTO.email,
                     password: hashPassword,
                     role: {
@@ -56,7 +56,7 @@ export class AuthService {
                 // throw new ForbiddenException("Error in credentials");
                 return {
                     success: false,
-                    message: 'Error in credentials',
+                    message: 'Email đã tồn tại',
                 };
             }
             return {
